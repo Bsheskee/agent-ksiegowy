@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+
+# Environment files
+.env
+.env.local
+.env.*
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Databases
+*.sqlite3
+*.db
+
+# Node / frontend
+node_modules/
+dist/
+build/
+
+# Uploads / generated files
+uploads/
+tmp/
+generated/
+exports/
+
+# Tests / cache
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Misc
+*.swp

@@ -1,0 +1,50 @@
+# TODO
+
+## Organizacja projektu
+- [ ] utworzenie repozytorium
+- [ ] przygotowanie struktury katalogów
+- [ ] dodanie dokumentacji
+- [ ] podział ról w zespole
+
+## MVP – backend
+- [ ] wybór frameworka backendowego
+- [ ] utworzenie podstawowego API
+- [ ] endpoint do uploadu plików
+- [ ] zapis przesłanych dokumentów
+- [ ] walidacja typów plików
+
+## MVP – OCR
+- [ ] wybór narzędzia OCR
+- [ ] integracja OCR z backendem
+- [ ] testy na przykładowych fakturach
+- [ ] zapis tekstu odczytanego z dokumentu
+
+## MVP – Bielik
+- [ ] przygotowanie promptu / schematu analizy
+- [ ] integracja z modelem Bielik
+- [ ] ekstrakcja podstawowych pól
+- [ ] kategoryzacja wydatków
+- [ ] obsługa błędnych lub niepełnych odpowiedzi
+
+## MVP – baza danych
+- [ ] projekt tabel
+- [ ] zapis dokumentów i wyników
+- [ ] lista rekordów
+- [ ] filtrowanie danych
+
+## MVP – frontend
+- [ ] formularz uploadu
+- [ ] widok analizy dokumentu
+- [ ] możliwość edycji danych
+- [ ] tabela przetworzonych faktur
+
+## MVP – eksport
+- [ ] eksport CSV
+- [ ] eksport XLSX
+
+## Rozszerzenia
+- [ ] logowanie użytkowników
+- [ ] historia operacji
+- [ ] statystyki wydatków
+- [ ] integracja z Google Sheets
+- [ ] obsługa wielu użytkowników / firm

@@ -1,17 +1,17 @@
 # TODO
 
 ## Organizacja projektu
-- [ ] utworzenie repozytorium
-- [ ] przygotowanie struktury katalogów
-- [ ] dodanie dokumentacji
+- [x] utworzenie repozytorium
+- [x] przygotowanie struktury katalogów
+- [x] dodanie dokumentacji
 - [ ] podział ról w zespole
 
 ## MVP – backend
-- [ ] wybór frameworka backendowego
-- [ ] utworzenie podstawowego API
-- [ ] endpoint do uploadu plików
-- [ ] zapis przesłanych dokumentów
-- [ ] walidacja typów plików
+- [x] wybór frameworka backendowego (FastAPI)
+- [x] utworzenie podstawowego API
+- [x] endpoint do uploadu plików
+- [x] zapis przesłanych dokumentów
+- [x] walidacja typów plików
 
 ## MVP – OCR
 - [ ] wybór narzędzia OCR

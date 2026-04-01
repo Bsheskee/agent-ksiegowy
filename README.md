@@ -60,7 +60,7 @@ Dokumentacja projektowa znajduje się w katalogu `docs/`:
 - `data/sample_data/` – dane testowe i przykładowe faktury
 
 ## Status
-Projekt w fazie planowania i inicjalizacji repozytorium.
+Backend (FastAPI): działa szkielet API oraz upload faktur (JPG, PNG, PDF) — szczegóły w `docs/backend/README.md`. Frontend i OCR w przygotowaniu.
 
 ## Autorzy
 Projekt realizowany zespołowo w ramach przedmiotu „Podstawy systemów informatycznych”.

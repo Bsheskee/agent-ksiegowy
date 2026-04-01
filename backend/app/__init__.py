@@ -1,0 +1,1 @@
+"""Agent księgowy – backend API."""

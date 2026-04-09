@@ -17,5 +17,6 @@ def _env_int(key: str, default: int) -> int:
 
 
 UPLOAD_DIR: Path = _env_path("UPLOAD_DIR", "data/uploads")
+DATABASE_PATH: Path = _env_path("DATABASE_PATH", "data/app.db")
 MAX_UPLOAD_BYTES: int = _env_int("MAX_UPLOAD_BYTES", 25 * 1024 * 1024)
 ALLOWED_EXTENSIONS: frozenset[str] = frozenset({".pdf", ".jpg", ".jpeg", ".png"})

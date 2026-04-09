@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app import db
 from app.api import invoices
 
 app = FastAPI(
@@ -18,6 +19,11 @@ app.add_middleware(
 )
 
 app.include_router(invoices.router, prefix="/api/v1")
+
+
+@app.on_event("startup")
+async def startup() -> None:
+    db.init_db()
 
 
 @app.get("/health", tags=["health"])

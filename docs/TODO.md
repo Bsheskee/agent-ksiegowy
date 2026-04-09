@@ -27,10 +27,15 @@
 - [ ] obsługa błędnych lub niepełnych odpowiedzi
 
 ## MVP – baza danych
-- [ ] projekt tabel
-- [ ] zapis dokumentów i wyników
-- [ ] lista rekordów
+- [x] projekt tabel (SQLite: `invoices`)
+- [x] zapis dokumentów i wyników
+- [x] lista rekordów
 - [ ] filtrowanie danych
+
+## MVP – pipeline (etap przejściowy)
+- [x] endpoint przetwarzania dokumentu po uploadzie
+- [x] ekstrakcja tekstu z PDF (`pypdf`)
+- [x] podstawowa ekstrakcja pól i kategoryzacja regułowa (placeholder pod Bielik)
 
 ## MVP – frontend
 - [ ] formularz uploadu

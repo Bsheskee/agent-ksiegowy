@@ -5,6 +5,9 @@ from pathlib import Path
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
 
 from app import config
+from app import db
+from app.services.analyzer import analyze_invoice_text
+from app.services.ocr import extract_text
 
 router = APIRouter(prefix="/invoices", tags=["invoices"])
 
@@ -89,11 +92,66 @@ async def upload_invoice(file: UploadFile = File(...)) -> dict:
             detail=f"Nie udało się zapisać pliku: {e}",
         ) from e
 
+    db.create_invoice(
+        invoice_id=doc_id,
+        original_filename=file.filename,
+        stored_path=dest,
+        content_type=file.content_type,
+        size_bytes=size,
+    )
+
     return {
         "id": doc_id,
+        "status": "uploaded",
         "original_filename": file.filename,
         "stored_path": str(dest),
         "stored_filename": stored_name,
         "content_type": file.content_type,
         "size_bytes": size,
     }
+
+
+@router.post(
+    "/{invoice_id}/process",
+    summary="Przetwórz dokument (OCR + analiza pól)",
+)
+async def process_invoice(invoice_id: str) -> dict:
+    invoice = db.get_invoice(invoice_id)
+    if invoice is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Nie znaleziono dokumentu.")
+
+    file_path = Path(invoice["stored_path"])
+    if not file_path.exists():
+        db.mark_failed(invoice_id, "Brak pliku źródłowego na dysku.")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Plik źródłowy nie istnieje.",
+        )
+
+    db.mark_processing(invoice_id)
+    try:
+        text = extract_text(file_path)
+        analysis = analyze_invoice_text(text)
+        db.mark_processed(invoice_id, ocr_text=text, analysis=analysis)
+    except Exception as exc:  # noqa: BLE001
+        db.mark_failed(invoice_id, str(exc))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Błąd przetwarzania dokumentu: {exc}",
+        ) from exc
+
+    return db.get_invoice(invoice_id) or {"id": invoice_id, "status": "processed"}
+
+
+@router.get("/{invoice_id}", summary="Pobierz szczegóły dokumentu")
+async def get_invoice(invoice_id: str) -> dict:
+    invoice = db.get_invoice(invoice_id)
+    if invoice is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Nie znaleziono dokumentu.")
+    return invoice
+
+
+@router.get("", summary="Lista dokumentów")
+async def list_invoices(limit: int = 50) -> list[dict]:
+    safe_limit = min(max(limit, 1), 200)
+    return db.list_invoices(limit=safe_limit)

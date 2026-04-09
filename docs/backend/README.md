@@ -18,7 +18,7 @@ Katalog backendu będzie zawierał logikę aplikacji oraz interfejs API.
 - baza danych
 - eksport danych
 
-## Uruchomienie (MVP upload)
+## Uruchomienie (MVP upload + processing)
 
 Wymagania: Python 3.10+.
 
@@ -33,10 +33,29 @@ uvicorn app.main:app --reload
 - Dokumentacja interaktywna API: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 - Health: `GET /health`
 - Upload faktury: `POST /api/v1/invoices/upload` (pole formularza `file`, typy: PDF, JPG, PNG)
+- Przetwarzanie dokumentu: `POST /api/v1/invoices/{invoice_id}/process`
+- Szczegóły dokumentu: `GET /api/v1/invoices/{invoice_id}`
+- Lista dokumentów: `GET /api/v1/invoices?limit=50`
 
 Pliki zapisywane są w katalogu `data/uploads/` (względem katalogu roboczego przy starcie serwera). Katalog jest ignorowany przez Git.
+Metadane i wyniki analizy zapisywane są w `data/app.db` (SQLite).
 
-Zmienne środowiskowe (opcjonalnie): `AGENT_KS_UPLOAD_DIR`, `AGENT_KS_MAX_UPLOAD_BYTES`.
+Zmienne środowiskowe (opcjonalnie): `AGENT_KS_UPLOAD_DIR`, `AGENT_KS_DATABASE_PATH`, `AGENT_KS_MAX_UPLOAD_BYTES`.
+
+## Szybki test flow MVP
+
+```bash
+# 1) Upload
+curl -F "file=@../docs/data/sample_data/f-vat_2011.pdf" http://127.0.0.1:8000/api/v1/invoices/upload
+
+# 2) Processing
+curl -X POST http://127.0.0.1:8000/api/v1/invoices/<ID_Z_UPLOADU>/process
+
+# 3) Podgląd rekordu
+curl http://127.0.0.1:8000/api/v1/invoices/<ID_Z_UPLOADU>
+```
+
+Uwaga: aktualnie moduł OCR odczytuje tekst bezpośrednio z PDF (biblioteka `pypdf`). OCR obrazów (`jpg/png`) i integracja z właściwym modelem Bielik będą kolejnym krokiem.
 
 ## Status
-Zaimplementowany szkielet FastAPI oraz endpoint uploadu plików (Etap 2 planu implementacji).
+Zaimplementowany backend MVP: upload, zapis, przetwarzanie dokumentu (PDF text extraction), podstawowa ekstrakcja pól i kategoryzacja (regułowa), zapis wyników w SQLite.

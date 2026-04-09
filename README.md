@@ -60,7 +60,7 @@ Dokumentacja projektowa znajduje się w katalogu `docs/`:
 - `data/sample_data/` – dane testowe i przykładowe faktury
 
 ## Status
-Backend (FastAPI): działa szkielet API oraz upload faktur (JPG, PNG, PDF) — szczegóły w `docs/backend/README.md`. Frontend i OCR w przygotowaniu.
+Backend (FastAPI): działa upload faktur oraz pipeline przetwarzania MVP (PDF text extraction + podstawowa ekstrakcja pól + zapis do SQLite) — szczegóły w `docs/backend/README.md`. Frontend, OCR obrazów i pełna integracja Bielika są w przygotowaniu.
 
 ## Autorzy
 Projekt realizowany zespołowo w ramach przedmiotu „Podstawy systemów informatycznych”.

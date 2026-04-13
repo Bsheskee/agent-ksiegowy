@@ -7,7 +7,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile, status
 from app import config
 from app import db
 from app.services.analyzer import analyze_invoice_text
-from app.services.ocr import extract_text
+from app.services.ocr import extract_text, tesseract_available
 
 router = APIRouter(prefix="/invoices", tags=["invoices"])
 
@@ -130,8 +130,12 @@ async def process_invoice(invoice_id: str) -> dict:
 
     db.mark_processing(invoice_id)
     try:
-        text = extract_text(file_path)
+        ocr_result = extract_text(file_path)
+        text = ocr_result["text"]
         analysis = analyze_invoice_text(text)
+        analysis["ocr_engine"] = ocr_result["engine"]
+        analysis["ocr_warning"] = ocr_result["warning"]
+        analysis["ocr_text_length"] = len(text)
         db.mark_processed(invoice_id, ocr_text=text, analysis=analysis)
     except Exception as exc:  # noqa: BLE001
         db.mark_failed(invoice_id, str(exc))
@@ -140,7 +144,15 @@ async def process_invoice(invoice_id: str) -> dict:
             detail=f"Błąd przetwarzania dokumentu: {exc}",
         ) from exc
 
-    return db.get_invoice(invoice_id) or {"id": invoice_id, "status": "processed"}
+    response = db.get_invoice(invoice_id) or {"id": invoice_id, "status": "processed"}
+    preview = (text[:220] + "...") if len(text) > 220 else text
+    response["processing_summary"] = {
+        "engine": analysis.get("ocr_engine"),
+        "text_length": len(text),
+        "preview": preview,
+        "warning": analysis.get("ocr_warning"),
+    }
+    return response
 
 
 @router.get("/{invoice_id}", summary="Pobierz szczegóły dokumentu")
@@ -155,3 +167,11 @@ async def get_invoice(invoice_id: str) -> dict:
 async def list_invoices(limit: int = 50) -> list[dict]:
     safe_limit = min(max(limit, 1), 200)
     return db.list_invoices(limit=safe_limit)
+
+
+@router.get("/status/ocr", summary="Status OCR")
+async def ocr_status() -> dict:
+    return {
+        "tesseract_available": tesseract_available(),
+        "supported_file_types": sorted(config.ALLOWED_EXTENSIONS),
+    }

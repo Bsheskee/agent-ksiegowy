@@ -14,10 +14,10 @@
 - [x] walidacja typów plików
 
 ## MVP – OCR
-- [ ] wybór narzędzia OCR
-- [ ] integracja OCR z backendem
+- [x] wybór narzędzia OCR (Tesseract)
+- [x] integracja OCR z backendem (JPG/PNG)
 - [ ] testy na przykładowych fakturach
-- [ ] zapis tekstu odczytanego z dokumentu
+- [x] zapis tekstu odczytanego z dokumentu
 
 ## MVP – Bielik
 - [ ] przygotowanie promptu / schematu analizy

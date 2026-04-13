@@ -36,6 +36,7 @@ uvicorn app.main:app --reload
 - Przetwarzanie dokumentu: `POST /api/v1/invoices/{invoice_id}/process`
 - Szczegóły dokumentu: `GET /api/v1/invoices/{invoice_id}`
 - Lista dokumentów: `GET /api/v1/invoices?limit=50`
+- Status OCR/Tesseract: `GET /api/v1/invoices/status/ocr`
 
 Pliki zapisywane są w katalogu `data/uploads/` (względem katalogu roboczego przy starcie serwera). Katalog jest ignorowany przez Git.
 Metadane i wyniki analizy zapisywane są w `data/app.db` (SQLite).
@@ -55,7 +56,20 @@ curl -X POST http://127.0.0.1:8000/api/v1/invoices/<ID_Z_UPLOADU>/process
 curl http://127.0.0.1:8000/api/v1/invoices/<ID_Z_UPLOADU>
 ```
 
-Uwaga: aktualnie moduł OCR odczytuje tekst bezpośrednio z PDF (biblioteka `pypdf`). OCR obrazów (`jpg/png`) i integracja z właściwym modelem Bielik będą kolejnym krokiem.
+Uwaga: OCR obrazów (`jpg/png`) działa przez Tesseract (`pytesseract`). PDF-y są czytane przez warstwę tekstową (`pypdf`), a dla skanów PDF bez warstwy tekstowej zwracane jest ostrzeżenie w `processing_summary.warning`.
+
+### Wymagania systemowe OCR (Tesseract)
+
+- macOS: `brew install tesseract tesseract-lang`
+- Ubuntu/Debian: `sudo apt-get install tesseract-ocr tesseract-ocr-pol`
+
+Po instalacji możesz sprawdzić dostępność:
+
+```bash
+curl http://127.0.0.1:8000/api/v1/invoices/status/ocr
+```
+
+W odpowiedzi `POST /api/v1/invoices/{invoice_id}/process` dostaniesz `processing_summary` (silnik OCR, długość tekstu, fragment tekstu i ewentualne ostrzeżenie), co daje szybki, widoczny efekt działania MVP.
 
 ## Status
 Zaimplementowany backend MVP: upload, zapis, przetwarzanie dokumentu (PDF text extraction), podstawowa ekstrakcja pól i kategoryzacja (regułowa), zapis wyników w SQLite.

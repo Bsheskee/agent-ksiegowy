@@ -42,6 +42,7 @@
 - [ ] widok analizy dokumentu
 - [ ] możliwość edycji danych
 - [x] tabela przetworzonych faktur
+- [x] UI: usunięcie „Status przetwarzania” z danych księgowych + schowanie podglądu OCR (rozwijany w panelu technicznym)
 
 ## MVP – eksport
 - [ ] eksport CSV

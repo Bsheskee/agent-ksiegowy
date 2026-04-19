@@ -9,6 +9,8 @@ const invoicesList = document.getElementById("invoicesList");
 const factTableBody = document.getElementById("factTableBody");
 const metaTableBody = document.getElementById("metaTableBody");
 const ocrPreviewText = document.getElementById("ocrPreviewText");
+const ocrPreviewSummary = document.getElementById("ocrPreviewSummary");
+const ocrPreviewWarning = document.getElementById("ocrPreviewWarning");
 const resultStatusBadge = document.getElementById("resultStatusBadge");
 const linesTableBody = document.getElementById("linesTableBody");
 
@@ -112,7 +114,6 @@ function renderResult(data) {
     { label: "Suma brutto", value: analysis.gross_amount || "-" },
     { label: "Waluta", value: analysis.currency || "-" },
     { label: "Kategoria kosztu", value: analysis.category || "-" },
-    { label: "Status przetwarzania", value: status },
   ]);
 
   renderLineItems(analysis.line_items);
@@ -127,9 +128,20 @@ function renderResult(data) {
       label: "Długość OCR",
       value: `${analysis.ocr_text_length || summary.text_length || 0} znaków`,
     },
+    { label: "Status", value: status },
   ]);
 
-  ocrPreviewText.textContent = summary.preview || "Brak podglądu OCR.";
+  if (ocrPreviewText) {
+    ocrPreviewText.textContent = summary.preview || "Brak podglądu OCR.";
+  }
+  if (ocrPreviewWarning) {
+    ocrPreviewWarning.textContent = summary.warning || "";
+    ocrPreviewWarning.style.display = summary.warning ? "block" : "none";
+  }
+  if (ocrPreviewSummary) {
+    const len = analysis.ocr_text_length || summary.text_length || 0;
+    ocrPreviewSummary.textContent = `Tekst OCR (podgląd, ${len} znaków)`;
+  }
   setResultBadge(status);
 }
 

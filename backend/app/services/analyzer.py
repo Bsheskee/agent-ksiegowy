@@ -51,7 +51,7 @@ def extract_dates(text: str) -> dict[str, str | None]:
 
 def extract_place_of_issue(text: str) -> str | None:
     raw = _find(
-        r"Miejsce\s+wystawienia\s*:\s*([^\n]+)",
+        r"(?:Miejsce\s+wystawienia|Miejscowość)\s*(?::|-)?\s*([^\n]+)",
         text,
         flags=re.IGNORECASE,
     )

@@ -41,7 +41,6 @@
             <tr><th>Suma brutto</th><td>-</td></tr>
             <tr><th>Waluta</th><td>-</td></tr>
             <tr><th>Kategoria kosztu</th><td>-</td></tr>
-            <tr><th>Status przetwarzania</th><td>-</td></tr>
           </tbody>
         </table>
       </section>
@@ -71,11 +70,6 @@
       </section>
 
       <section class="card">
-        <h2>3. Podgląd OCR</h2>
-        <p id="ocrPreviewText" class="ocrPreview">Brak tekstu OCR.</p>
-      </section>
-
-      <section class="card">
         <div class="listHeader">
           <h2>Ostatnie dokumenty</h2>
           <button id="refreshBtn" class="secondary">Odśwież</button>
@@ -102,6 +96,14 @@
                 <tr><th>Długość OCR</th><td>-</td></tr>
               </tbody>
             </table>
+
+            <details class="subDetails">
+              <summary id="ocrPreviewSummary">Tekst OCR (podgląd)</summary>
+              <div class="subDetailsBody">
+                <p id="ocrPreviewWarning" class="hint"></p>
+                <pre id="ocrPreviewText" class="ocrPreview">Brak tekstu OCR.</pre>
+              </div>
+            </details>
 
             <h3>Pełna odpowiedź API</h3>
             <pre id="resultBox">Brak danych.</pre>

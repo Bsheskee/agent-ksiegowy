@@ -175,6 +175,34 @@ button:disabled {
   white-space: pre-wrap;
 }
 
+.subDetails {
+  margin-top: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+  padding: 10px 12px;
+}
+
+.subDetails summary {
+  cursor: pointer;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.subDetailsBody {
+  margin-top: 10px;
+}
+
+.hint {
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+  font-weight: 700;
+}
+
 pre {
   white-space: pre-wrap;
   word-break: break-word;

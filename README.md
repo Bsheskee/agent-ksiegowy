@@ -28,7 +28,7 @@ Projekt ma na celu ograniczenie ręcznego przepisywania danych z faktur oraz uł
 
 **Kategoryzacja.** Docelowy słownik kategorii obejmuje m.in. paliwo, transport, usługi, sprzęt, oprogramowanie, gastronomię, materiały biurowe (`docs/PRD.md`). Kategoria jest **propozycją systemu**; użytkownik może ją zmienić przed użyciem danych w rozliczeniach. W wdrożonym MVP część klasyfikacji może być **regułowa** (słowa kluczowe w tekście), z planem przejścia na Bielika dla trudniejszych przypadków.
 
-**Ograniczenia i założenia.** Aplikacja zakłada typowe faktury w języku polskim; jakość automatycznego odczytu zależy od jakości skanu i spójności szablonu dokumentu. System nie zastępuje pełnej księgowości — **automatyzuje wstępne przetwarzanie i porządkowanie**, przy **obowiązkowej** możliwości korekty przez człowieka.
+**Ograniczenia i założenia.** Aplikacja zakłada typowe faktury w języku polskim; jakość automatycznego odczytu zależy od jakości skanu i spójności szablonu dokumentu. System nie zastępuje pełnej księgowości — **automatyzuje wstępne przetwarzanie i porządkowanie**, przy **obowiązkowej** możliwości korekty przez człowieka. W przyszłości jest możliwa integracja z KSeF (Krajowy System e-Faktur), który posiada otwarte API, co pozwla na zintegrowanie go z zewnętrznymi aplikacjami, takimi jak programy księgowe, systemy ERP czy inne narzędzia biznesowe. Dla naszej aplikacji w wersji MVP (Minimum Value Product) na tym etapie nie przewidujemy integracji z KSeF.
 
 ## Główne funkcje
 - upload faktur w formacie JPG, PNG, PDF,
@@ -82,3 +82,7 @@ Backend (FastAPI): działa upload faktur oraz pipeline przetwarzania MVP (PDF te
 
 ## Autorzy
 Projekt realizowany zespołowo w ramach przedmiotu „Podstawy systemów informatycznych”.
+- Bartłomiej Białobrzewski
+- Aner Ot
+- Michał Studziński
+- Piotr Mazur

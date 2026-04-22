@@ -7,6 +7,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile, status
 from app import config
 from app import db
 from app.services.analyzer import analyze_invoice_text
+from app.services.bielik import analyze_with_bielik, merge_invoice_analysis
 from app.services.ocr import extract_text, tesseract_available
 
 router = APIRouter(prefix="/invoices", tags=["invoices"])
@@ -144,7 +145,9 @@ async def process_invoice(invoice_id: str) -> dict:
     try:
         ocr_result = extract_text(file_path)
         text = ocr_result["text"]
-        analysis = analyze_invoice_text(text)
+        heuristic_analysis = analyze_invoice_text(text)
+        bielik_analysis = analyze_with_bielik(text, heuristic_analysis)
+        analysis = merge_invoice_analysis(heuristic_analysis, bielik_analysis)
         analysis["ocr_engine"] = ocr_result["engine"]
         analysis["ocr_warning"] = ocr_result["warning"]
         analysis["ocr_text_length"] = len(text)

@@ -16,15 +16,15 @@
 ## MVP – OCR
 - [x] wybór narzędzia OCR (Tesseract)
 - [x] integracja OCR z backendem (JPG/PNG)
-- [ ] testy na przykładowych fakturach
+- [x] testy na przykładowych fakturach
 - [x] zapis tekstu odczytanego z dokumentu
 
 ## MVP – Bielik
-- [ ] przygotowanie promptu / schematu analizy
-- [ ] integracja z modelem Bielik (placeholder: `backend/app/services/bielik.py`)
-- [ ] ekstrakcja podstawowych pól
+- [x] przygotowanie promptu / schematu analizy
+- [x] integracja z modelem Bielik (placeholder: `backend/app/services/bielik.py`)
+- [x] ekstrakcja podstawowych pól
 - [ ] kategoryzacja wydatków
-- [ ] obsługa błędnych lub niepełnych odpowiedzi
+- [x] obsługa błędnych lub niepełnych odpowiedzi
 
 ## MVP – baza danych
 - [x] projekt tabel (SQLite: `invoices`)

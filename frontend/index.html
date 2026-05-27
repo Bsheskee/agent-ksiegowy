@@ -3,195 +3,454 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Agent Księgowy - MVP</title>
+    <title>Agent Księgowy</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
 
-    <!-- ── Toast notifications ──────────────────────────────────────────── -->
-    <div id="toastContainer" class="toastContainer" aria-live="polite"></div>
+    <!-- ── Toast notifications ───────────────────────────────────────────── -->
+    <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
-    <main class="container">
-      <header class="hero">
-        <h1>Agent Księgowy</h1>
-        <p class="subtitle">Dodaj fakturę i otrzymaj czytelny podgląd danych księgowych.</p>
+    <!-- ── Sidebar overlay (mobile) ──────────────────────────────────────── -->
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+    <!-- ── Sidebar ───────────────────────────────────────────────────────── -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-logo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25Z" />
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-name">Agent Księgowy</span>
+          <span class="brand-tagline">System faktur</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="#" class="nav-link active" data-page="dashboard">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+          </svg>
+          <span class="nav-label">Pulpit</span>
+        </a>
+
+        <a href="#" class="nav-link" data-page="upload">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+          </svg>
+          <span class="nav-label">Nowa faktura</span>
+        </a>
+
+        <a href="#" class="nav-link" data-page="documents">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+          </svg>
+          <span class="nav-label">Dokumenty</span>
+        </a>
+
+        <a href="#" class="nav-link" data-page="analytics">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
+          </svg>
+          <span class="nav-label">Statystyki</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <a href="#" class="nav-link" data-page="settings">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+          </svg>
+          <span class="nav-label">Ustawienia</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- ── App main ───────────────────────────────────────────────────────── -->
+    <div class="app-main">
+
+      <!-- Top bar -->
+      <header class="topbar">
+        <button class="topbar-menu-btn" id="sidebarToggle" aria-label="Menu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+          </svg>
+        </button>
+        <h1 class="topbar-title" id="pageTitle">Pulpit</h1>
+        <div class="topbar-right" id="topbarRight"></div>
       </header>
 
-      <!-- ── 1. Upload ──────────────────────────────────────────────── -->
-      <section class="card uploadCard">
-        <h2>1. Dodaj dokument</h2>
-        <label for="invoiceFile">Plik faktury (PDF, JPG, PNG)</label>
-        <input id="invoiceFile" type="file" accept=".pdf,.jpg,.jpeg,.png" />
-        <button id="uploadBtn">
-          <span id="uploadBtnText">Przetwórz dokument</span>
-          <span id="uploadSpinner" class="spinner" style="display:none"></span>
-        </button>
-        <p id="statusText" class="status"></p>
-      </section>
+      <!-- Pages -->
+      <main class="content-area">
 
-      <!-- ── 2. Dane księgowe ───────────────────────────────────────── -->
-      <section class="card" id="analysisSection" style="display:none">
-        <div class="listHeader">
-          <h2>2. Dane księgowe</h2>
-          <div class="listHeaderActions">
-            <span id="bielikStatusBadge" class="badge neutral bielikBadge" style="display:none"></span>
-            <span id="confirmedBadge" class="badge neutral" style="display:none"></span>
-            <span id="resultStatusBadge" class="badge neutral">Brak wyniku</span>
-            <button id="confirmBtn" class="secondary small" style="display:none" title="Oznacz jako zweryfikowaną">✓ Zatwierdź</button>
-            <button id="reprocessBtn" class="secondary small" style="display:none" title="Uruchom OCR i analizę ponownie">🔄 Przetworz ponownie</button>
-            <button id="editBtn" class="secondary small">✏️ Edytuj</button>
-          </div>
-        </div>
-        <table class="factTable">
-          <tbody id="factTableBody">
-            <tr><th>Numer faktury</th><td>-</td></tr>
-          </tbody>
-        </table>
-      </section>
+        <!-- ── PAGE: DASHBOARD ──────────────────────────────────────────── -->
+        <div class="page" id="page-dashboard">
 
-      <!-- ── 2b. Pozycje faktury ────────────────────────────────────── -->
-      <section class="card" id="linesSection" style="display:none">
-        <h2>2b. Pozycje faktury</h2>
-        <div class="tableWrap">
-          <table class="linesTable">
-            <thead>
-              <tr>
-                <th>Lp</th><th>Nazwa</th><th>Jm</th><th>Ilość</th>
-                <th>Cena netto</th><th>Stawka VAT</th>
-                <th>Wart. netto</th><th>Wart. VAT</th><th>Wart. brutto</th>
-              </tr>
-            </thead>
-            <tbody id="linesTableBody">
-              <tr><td colspan="9">Brak pozycji.</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- ── 3. Historia + filtry ───────────────────────────────────── -->
-      <section class="card">
-        <div class="listHeader">
-          <h2>Ostatnie dokumenty</h2>
-          <div class="listHeaderActions">
-            <button id="exportCsvBtn" class="secondary small">⬇ CSV</button>
-            <button id="exportXlsxBtn" class="secondary small">⬇ XLSX</button>
-            <button id="refreshBtn" class="secondary small">↺ Odśwież</button>
-          </div>
-        </div>
-
-        <!-- Filter bar (collapsible on mobile) -->
-        <details id="filterDetails" class="filterDetails" open>
-          <summary class="filterSummary">Filtry i wyszukiwanie</summary>
-          <div class="filterBar">
-            <div class="filterGroup searchGroup">
-              <label for="filterSearch">Szukaj</label>
-              <input id="filterSearch" type="text" class="filterInput searchInput" placeholder="Numer faktury, nazwa pliku…" />
+          <!-- KPI row -->
+          <div class="kpi-row">
+            <div class="kpi-card">
+              <div class="kpi-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                </svg>
+              </div>
+              <div>
+                <div class="kpi-value" id="statTotalCount">—</div>
+                <div class="kpi-label">Przetworzonych faktur</div>
+              </div>
             </div>
-            <div class="filterGroup">
-              <label for="filterCategory">Kategoria</label>
-              <select id="filterCategory">
-                <option value="">Wszystkie</option>
-              </select>
+            <div class="kpi-card kpi-primary">
+              <div class="kpi-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                </svg>
+              </div>
+              <div>
+                <div class="kpi-value" id="statTotalGross">—</div>
+                <div class="kpi-label">Łączna wartość brutto</div>
+              </div>
             </div>
-            <div class="filterGroup">
-              <label for="filterStatus">Status</label>
-              <select id="filterStatus">
-                <option value="">Wszystkie</option>
-                <option value="processed">Przetworzone</option>
-                <option value="uploaded">Przesłane</option>
-                <option value="failed">Błąd</option>
-              </select>
-            </div>
-            <div class="filterGroup">
-              <label for="filterDateFrom">Data od</label>
-              <input id="filterDateFrom" type="date" class="filterInput" />
-            </div>
-            <div class="filterGroup">
-              <label for="filterDateTo">Data do</label>
-              <input id="filterDateTo" type="date" class="filterInput" />
-            </div>
-            <button id="applyFilterBtn" class="secondary small filterApply">Filtruj</button>
-            <button id="clearFilterBtn" class="secondary small filterApply">✕ Wyczyść</button>
           </div>
-        </details>
 
-        <div id="invoicesList" class="historyGrid"></div>
-      </section>
+          <!-- Recent documents -->
+          <div class="panel">
+            <div class="panel-header">
+              <h2 class="panel-title">Ostatnie dokumenty</h2>
+              <button class="btn-ghost btn-sm" id="dashViewAllBtn">Zobacz wszystkie →</button>
+            </div>
+            <div id="dashRecentList" class="doc-list"></div>
+          </div>
 
-      <!-- ── 4. Statystyki wydatków ─────────────────────────────────── -->
-      <section class="card" id="statsSection">
-        <div class="listHeader">
-          <h2>Statystyki wydatków</h2>
-          <button id="refreshStatsBtn" class="secondary small">↺ Odśwież</button>
         </div>
-        <div class="statsGrid">
-          <div class="statCard">
-            <div class="statValue" id="statTotalCount">-</div>
-            <div class="statLabel">Przetworzonych faktur</div>
-          </div>
-          <div class="statCard">
-            <div class="statValue" id="statTotalGross">-</div>
-            <div class="statLabel">Łączna wartość brutto</div>
-          </div>
-        </div>
-        <div class="chartsGrid">
-          <div class="chartContainer">
-            <h3>Wydatki wg kategorii</h3>
-            <canvas id="chartByCategory"></canvas>
-          </div>
-          <div class="chartContainer">
-            <h3>Wydatki wg miesiąca</h3>
-            <canvas id="chartByMonth"></canvas>
-          </div>
-        </div>
-      </section>
 
-      <!-- ── Admin panel ────────────────────────────────────────────── -->
-      <section class="card adminCard">
-        <details>
-          <summary>Panel administratora (dane techniczne)</summary>
-          <div class="adminContent">
-            <label for="backendUrl">Adres backendu</label>
-            <input id="backendUrl" type="text" value="http://127.0.0.1:8000" />
-            <button id="saveBackendBtn" class="secondary">Zapisz adres backendu</button>
+        <!-- ── PAGE: UPLOAD ─────────────────────────────────────────────── -->
+        <div class="page hidden" id="page-upload">
 
-            <h3>Metadane techniczne (ostatni dokument)</h3>
-            <table class="metaTable">
+          <div class="upload-layout">
+            <!-- Upload form -->
+            <div class="panel upload-panel">
+              <div class="panel-header">
+                <h2 class="panel-title">Dodaj dokument</h2>
+              </div>
+
+              <label for="invoiceFile" class="dropzone" id="dropzone">
+                <div class="dropzone-inner">
+                  <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m6.75 12-3-3m0 0-3 3m3-3v6m-1.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                  </svg>
+                  <span class="dropzone-text" id="dropzoneText">Przeciągnij fakturę tutaj</span>
+                  <span class="dropzone-hint">lub kliknij, aby wybrać plik · PDF, JPG, PNG · maks. 25 MB</span>
+                </div>
+              </label>
+              <input id="invoiceFile" type="file" accept=".pdf,.jpg,.jpeg,.png" class="sr-only" />
+
+              <button id="uploadBtn" class="btn-primary upload-btn">
+                <span id="uploadBtnText">Przetwórz dokument</span>
+                <span id="uploadSpinner" class="spinner" style="display:none"></span>
+              </button>
+              <p id="statusText" class="status-msg"></p>
+            </div>
+
+            <!-- Analysis result -->
+            <div class="panel analysis-panel" id="analysisSection" style="display:none">
+              <div class="panel-header">
+                <h2 class="panel-title">Dane faktury</h2>
+                <div class="badge-row">
+                  <span id="bielikStatusBadge" class="badge badge-neutral bielikBadge" style="display:none"></span>
+                  <span id="confirmedBadge" class="badge badge-neutral" style="display:none"></span>
+                  <span id="resultStatusBadge" class="badge badge-neutral">Brak wyniku</span>
+                </div>
+              </div>
+
+              <!-- Document info -->
+              <div class="detail-section">
+                <div class="detail-section-title">Identyfikacja</div>
+                <div class="detail-fields-grid">
+                  <div class="detail-field">
+                    <div class="detail-field-label">Numer faktury</div>
+                    <div class="detail-field-value" id="df-invoice-number">—</div>
+                  </div>
+                  <div class="detail-field">
+                    <div class="detail-field-label">Data wystawienia</div>
+                    <div class="detail-field-value" id="df-issue-date">—</div>
+                  </div>
+                  <div class="detail-field">
+                    <div class="detail-field-label">Data sprzedaży</div>
+                    <div class="detail-field-value" id="df-sale-date">—</div>
+                  </div>
+                  <div class="detail-field">
+                    <div class="detail-field-label">Termin zapłaty</div>
+                    <div class="detail-field-value" id="df-due-date">—</div>
+                  </div>
+                  <div class="detail-field">
+                    <div class="detail-field-label">Miejsce wystawienia</div>
+                    <div class="detail-field-value" id="df-issue-place">—</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Parties -->
+              <div class="detail-section">
+                <div class="detail-section-title">Strony transakcji</div>
+                <div class="parties-grid">
+                  <div class="party-card">
+                    <div class="party-role">Sprzedawca</div>
+                    <div class="party-name" id="df-seller-name">—</div>
+                    <div class="party-nip" id="df-seller-nip">—</div>
+                  </div>
+                  <div class="party-card">
+                    <div class="party-role">Nabywca</div>
+                    <div class="party-name" id="df-buyer-name">—</div>
+                    <div class="party-nip" id="df-buyer-nip">—</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Amounts -->
+              <div class="detail-section">
+                <div class="detail-section-title">Kwoty</div>
+                <div class="amounts-grid">
+                  <div class="amount-item">
+                    <div class="amount-label">Netto</div>
+                    <div class="amount-value" id="df-net-amount">—</div>
+                  </div>
+                  <div class="amount-item">
+                    <div class="amount-label">VAT</div>
+                    <div class="amount-value" id="df-vat-amount">—</div>
+                  </div>
+                  <div class="amount-item amount-gross">
+                    <div class="amount-label">Brutto</div>
+                    <div class="amount-value" id="df-gross-amount">—</div>
+                  </div>
+                  <div class="amount-item">
+                    <div class="amount-label">Waluta</div>
+                    <div class="amount-value" id="df-currency">—</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Category -->
+              <div class="detail-section">
+                <div class="detail-section-title">Klasyfikacja</div>
+                <div id="df-category">—</div>
+              </div>
+
+              <!-- Action buttons -->
+              <div class="result-actions">
+                <button id="confirmBtn" class="btn-success" style="display:none">✓ Zatwierdź</button>
+                <button id="editBtn" class="btn-secondary">✏️ Edytuj</button>
+                <button id="reprocessBtn" class="btn-secondary" style="display:none">🔄 Przetworz ponownie</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Line items (full width, below) -->
+          <div class="panel" id="linesSection" style="display:none">
+            <div class="panel-header">
+              <h2 class="panel-title">Pozycje faktury</h2>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table lines-table">
+                <thead>
+                  <tr>
+                    <th>Lp</th><th>Nazwa</th><th>Jm</th><th>Ilość</th>
+                    <th>Cena netto</th><th>Stawka VAT</th>
+                    <th>Wart. netto</th><th>Wart. VAT</th><th>Wart. brutto</th>
+                  </tr>
+                </thead>
+                <tbody id="linesTableBody">
+                  <tr><td colspan="9" class="empty-cell">Brak pozycji.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ── PAGE: DOCUMENTS ──────────────────────────────────────────── -->
+        <div class="page hidden" id="page-documents">
+
+          <div class="panel">
+            <div class="panel-header">
+              <h2 class="panel-title">Wszystkie dokumenty</h2>
+              <div class="panel-actions">
+                <button id="exportCsvBtn" class="btn-secondary btn-sm">⬇ CSV</button>
+                <button id="exportXlsxBtn" class="btn-secondary btn-sm">⬇ XLSX</button>
+                <button id="refreshBtn" class="btn-ghost btn-sm" title="Odśwież">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="filter-bar">
+              <div class="filter-group filter-search">
+                <label for="filterSearch">Szukaj</label>
+                <input id="filterSearch" type="text" placeholder="Numer faktury, nazwa pliku…" />
+              </div>
+              <div class="filter-group">
+                <label for="filterCategory">Kategoria</label>
+                <select id="filterCategory">
+                  <option value="">Wszystkie</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label for="filterStatus">Status</label>
+                <select id="filterStatus">
+                  <option value="">Wszystkie</option>
+                  <option value="processed">Przetworzone</option>
+                  <option value="uploaded">Przesłane</option>
+                  <option value="failed">Błąd</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label for="filterDateFrom">Od</label>
+                <input id="filterDateFrom" type="date" />
+              </div>
+              <div class="filter-group">
+                <label for="filterDateTo">Do</label>
+                <input id="filterDateTo" type="date" />
+              </div>
+              <div class="filter-btns">
+                <button id="applyFilterBtn" class="btn-primary btn-sm">Filtruj</button>
+                <button id="clearFilterBtn" class="btn-ghost btn-sm">✕ Wyczyść</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="invoicesList" class="doc-grid"></div>
+
+        </div>
+
+        <!-- ── PAGE: ANALYTICS ──────────────────────────────────────────── -->
+        <div class="page hidden" id="page-analytics">
+
+          <div class="kpi-row">
+            <div class="kpi-card">
+              <div class="kpi-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                </svg>
+              </div>
+              <div>
+                <div class="kpi-value" id="statTotalCountB">—</div>
+                <div class="kpi-label">Przetworzonych faktur</div>
+              </div>
+            </div>
+            <div class="kpi-card kpi-primary">
+              <div class="kpi-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                </svg>
+              </div>
+              <div>
+                <div class="kpi-value" id="statTotalGrossB">—</div>
+                <div class="kpi-label">Łączna wartość brutto</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="charts-grid">
+            <div class="panel">
+              <div class="panel-header">
+                <h2 class="panel-title">Wydatki wg kategorii</h2>
+                <button id="refreshStatsBtn" class="btn-ghost btn-sm">↺</button>
+              </div>
+              <canvas id="chartByCategory"></canvas>
+            </div>
+            <div class="panel">
+              <div class="panel-header">
+                <h2 class="panel-title">Wydatki wg miesiąca</h2>
+              </div>
+              <canvas id="chartByMonth"></canvas>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ── PAGE: SETTINGS ───────────────────────────────────────────── -->
+        <div class="page hidden" id="page-settings">
+
+          <div class="panel">
+            <div class="panel-header">
+              <h2 class="panel-title">Konfiguracja backendu</h2>
+            </div>
+            <div class="settings-row">
+              <label for="backendUrl" class="settings-label">Adres API</label>
+              <div class="settings-input-row">
+                <input id="backendUrl" type="text" value="http://127.0.0.1:8000" />
+                <button id="saveBackendBtn" class="btn-primary">Zapisz</button>
+              </div>
+              <p class="hint-text">Zmień tylko jeśli backend działa na innym porcie lub hoście.</p>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <h2 class="panel-title">Dane techniczne — ostatni dokument</h2>
+            </div>
+            <table class="data-table meta-table">
               <tbody id="metaTableBody">
-                <tr><th>ID dokumentu</th><td>-</td></tr>
-                <tr><th>Nazwa pliku</th><td>-</td></tr>
-                <tr><th>Typ pliku</th><td>-</td></tr>
-                <tr><th>Rozmiar</th><td>-</td></tr>
-                <tr><th>Silnik OCR</th><td>-</td></tr>
-                <tr><th>Długość OCR</th><td>-</td></tr>
+                <tr><th>ID dokumentu</th><td>—</td></tr>
+                <tr><th>Nazwa pliku</th><td>—</td></tr>
+                <tr><th>Typ pliku</th><td>—</td></tr>
+                <tr><th>Rozmiar</th><td>—</td></tr>
+                <tr><th>Silnik OCR</th><td>—</td></tr>
+                <tr><th>Długość OCR</th><td>—</td></tr>
               </tbody>
             </table>
 
-            <details class="subDetails">
+            <details class="details-block">
               <summary id="ocrPreviewSummary">Tekst OCR (podgląd)</summary>
-              <div class="subDetailsBody">
-                <p id="ocrPreviewWarning" class="hint" style="display:none"></p>
-                <pre id="ocrPreviewText" class="ocrPreview">Brak tekstu OCR.</pre>
+              <div class="details-body">
+                <p id="ocrPreviewWarning" class="hint-warning" style="display:none"></p>
+                <pre id="ocrPreviewText" class="code-pre">Brak tekstu OCR.</pre>
               </div>
             </details>
 
-            <h3>Pełna odpowiedź API</h3>
-            <pre id="resultBox">Brak danych.</pre>
+            <details class="details-block">
+              <summary>Pełna odpowiedź API (JSON)</summary>
+              <div class="details-body">
+                <pre id="resultBox" class="code-pre">Brak danych.</pre>
+              </div>
+            </details>
           </div>
-        </details>
-      </section>
-    </main>
 
-    <!-- ── Edit modal ─────────────────────────────────────────────────── -->
-    <div id="editModal" class="modal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
-      <div class="modalBackdrop" id="editModalBackdrop"></div>
-      <div class="modalContent">
-        <div class="modalHeader">
-          <h3 id="editModalTitle">Edytuj dane faktury</h3>
-          <button id="editModalClose" class="modalClose" aria-label="Zamknij">✕</button>
         </div>
-        <form id="editForm" class="editForm">
-          <div class="editGrid">
+
+      </main>
+    </div>
+
+    <!-- ── Edit modal ─────────────────────────────────────────────────────── -->
+    <div id="editModal" class="modal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
+      <div class="modal-backdrop" id="editModalBackdrop"></div>
+      <div class="modal-box">
+        <div class="modal-header">
+          <h3 id="editModalTitle">Edytuj dane faktury</h3>
+          <button id="editModalClose" class="btn-icon" aria-label="Zamknij">✕</button>
+        </div>
+        <form id="editForm">
+          <div class="edit-grid">
             <label>Numer faktury<input name="invoice_number" type="text" /></label>
             <label>Data wystawienia<input name="issue_date" type="date" /></label>
             <label>Data sprzedaży<input name="sale_date" type="date" /></label>
@@ -206,16 +465,14 @@
             <label>Suma brutto<input name="gross_amount" type="text" /></label>
             <label>Waluta<input name="currency" type="text" /></label>
             <label>Kategoria
-              <select name="category" id="editCategorySelect">
-                <!-- populated dynamically from /api/v1/categories -->
-              </select>
+              <select name="category" id="editCategorySelect"></select>
             </label>
           </div>
-          <div class="modalFooter">
-            <button type="submit" id="editSaveBtn">Zapisz zmiany</button>
-            <button type="button" id="editCancelBtn" class="secondary">Anuluj</button>
+          <div class="modal-footer">
+            <button type="button" id="editCancelBtn" class="btn-secondary">Anuluj</button>
+            <button type="submit" id="editSaveBtn" class="btn-primary">Zapisz zmiany</button>
           </div>
-          <p id="editStatus" class="status"></p>
+          <p id="editStatus" class="status-msg"></p>
         </form>
       </div>
     </div>

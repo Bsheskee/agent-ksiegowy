@@ -86,15 +86,15 @@ agent-ksiegowy/
 │   │   └── uploads/             # Stored invoice files
 │   └── requirements.txt
 ├── frontend/
-│   ├── index.html               # Single-page app
+│   ├── index.html               # Single-page app (sidebar layout)
 │   ├── app.js                   # All client logic (upload, render, filter,
-│   │                            #   edit modal, export download)
+│   │                            #   edit modal, export download, navigation)
 │   └── styles.css
 ├── docs/
 │   ├── PRD.md                   # Product Requirements Document
-│   ├── TODO.md                  # Feature checklist (all MVP items done)
+│   ├── TODO.md                  # Feature checklist
 │   ├── ARCHITECTURE.md
-│   ├── screenshots/             # 5 Playwright screenshots of running app
+│   ├── screenshots/             # Playwright screenshots of running app
 │   └── data/sample_data/        # 3 test PDFs (f-vat_soft, perf, 2011)
 ├── start.sh                     # macOS/Linux launcher
 ├── start.ps1                    # Windows launcher
@@ -211,7 +211,7 @@ CREATE TABLE events (
 
 `file_sha256` is added via `ALTER TABLE` migration in `init_db()` so existing databases upgrade automatically.
 
-The `analysis_json` dict now includes `seller_name`, `buyer_name`, and `confirmed` (bool, default `false`) fields in addition to the previous fields.
+The `analysis_json` dict includes: all extracted invoice fields, `seller_name`, `buyer_name`, `confirmed` (bool, default `false`), `bielik_status`, `ocr_engine`, `ocr_warning`, `ocr_text_length`.
 
 ### Bielik integration
 
@@ -223,47 +223,14 @@ export AGENT_KS_BIELIK_URL=http://localhost:11434/api/generate
 export AGENT_KS_BIELIK_MODEL=bielik
 ```
 
+### Frontend navigation
+
+The frontend is a single-page app with a sidebar (pages: Pulpit, Nowa faktura, Dokumenty, Statystyki, Ustawienia). Page switching is handled by `navigateTo(pageId)` in `app.js` which toggles `.hidden` on `.page` divs and updates the active sidebar link.
+
 ---
 
-## Suggested improvements
+## Remaining / future improvements
 
-The list below cross-references the PRD (`docs/PRD.md`) and highlights gaps between current state and specification, plus general quality/UX improvements.
-
-### 🔴 PRD gaps
-
-| PRD section | Requirement | Status |
-|---|---|---|
-| §6.4 | "Zatwierdzenie wpisu" | ✅ **Done** — "Zatwierdź" button sets `confirmed: true` in `analysis_json`; unconfirmed cards show different badge |
-| §6.5 | "Wyszukiwanie" (full-text search) | ✅ **Done** — `?search=` param via SQLite `LIKE` on `original_filename` and `invoice_number`; search box in UI |
-| §7 | Statystyki wydatków | ✅ **Done** — `/api/v1/invoices/stats` endpoint; Chart.js bar charts by category and month in UI |
-| §7 | Historia operacji | ✅ **Done** — `events` table logs every status transition; `GET /{id}/events` endpoint |
-| §7 | Integracja z Google Sheets | ❌ Not implemented (requires external credentials) |
-| §8 | Bielik UI indicator | ✅ **Done** — "🤖 Bielik" vs "📐 Heurystyka" badge shown in analysis panel |
-
-### 🟡 Architecture & backend
-
-- ✅ **`AnalysisPatch` Pydantic model** — PATCH endpoint now validates and types all fields; `extra="ignore"` prevents garbage keys.
-- ✅ **Non-blocking OCR** — `process_invoice` runs the synchronous OCR/Bielik pipeline in `asyncio.to_thread`, unblocking the event loop.
-- ✅ **Offset pagination** — `list_invoices` now accepts `?offset=` in addition to `?limit=`.
-- ✅ **SHA-256 deduplication** — uploading the same file returns the existing record (`duplicate: true`) without storing a second copy.
-- ✅ **Configurable OCR language** — `AGENT_KS_OCR_LANG` env var (default `pol+eng`).
-- **Single SQLite file** — fine for local/single-user use. Connection pool (`aiosqlite`) is a future improvement.
-
-### 🟡 Frontend & UX
-
-- ✅ **Loading spinner** — CSS spinner shown inside the upload button while processing.
-- ✅ **Toast notifications** — dismissible slide-in toasts (success / error / warning / info) at bottom-right.
-- ✅ **Confirm before edit-save** — `confirm()` dialog before PATCHing the server.
-- ✅ **OCR warning on history cards** — orange "⚠ OCR" badge if `analysis.ocr_warning` is set.
-- ✅ **Dark mode** — full `@media (prefers-color-scheme: dark)` stylesheet.
-- ✅ **Mobile layout** — filter bar wrapped in `<details>` that collapses on narrow screens; single-column edit grid.
-- ✅ **Category filter from API** — both filter dropdown and edit-modal category select populated from `/api/v1/categories` at load time.
-
-### 🟢 Quick wins
-
-- ✅ **Bielik status badge** — "🤖 Bielik" / "📐 Heurystyka" badge in analysis panel.
-- ✅ **Re-process button** — "🔄 Przetworz ponownie" button runs `POST /{id}/process` on the displayed invoice.
-- ✅ **Bulk export respects filters** — CSV/XLSX export passes the same `?search=`, `?category=`, etc. params as the current list view.
-- ✅ **`seller_name` / `buyer_name` extraction** — `extract_company_names()` in `analyzer.py`; shown in analysis table and included in exports.
-- ✅ **Stats section** — Chart.js bar charts for spending by category and by month.
-- **PDF thumbnail preview** — future improvement (requires `pdf.js` or `pypdfium2`).
+- **Google Sheets integration** — requires OAuth credentials; not implemented.
+- **PDF thumbnail preview** — requires `pdf.js` or `pypdfium2`.
+- **aiosqlite connection pool** — single SQLite file is fine for local/single-user; async pool is a future improvement for concurrent use.

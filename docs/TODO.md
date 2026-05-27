@@ -23,14 +23,14 @@
 - [x] przygotowanie promptu / schematu analizy
 - [x] integracja z modelem Bielik (placeholder: `backend/app/services/bielik.py`)
 - [x] ekstrakcja podstawowych pól
-- [ ] kategoryzacja wydatków
+- [x] kategoryzacja wydatków (13 kategorii: oprogramowanie, sprzęt IT, paliwo, transport, delegacje, media, materiały biurowe, usługi doradcze, marketing, surowce, wyposażenie, ubezpieczenia, inne)
 - [x] obsługa błędnych lub niepełnych odpowiedzi
 
 ## MVP – baza danych
 - [x] projekt tabel (SQLite: `invoices`)
 - [x] zapis dokumentów i wyników
 - [x] lista rekordów
-- [ ] filtrowanie danych
+- [x] filtrowanie danych (po kategorii, statusie, zakresie dat wystawienia)
 
 ## MVP – pipeline (etap przejściowy)
 - [x] endpoint przetwarzania dokumentu po uploadzie
@@ -39,14 +39,14 @@
 
 ## MVP – frontend
 - [x] formularz uploadu
-- [ ] widok analizy dokumentu
-- [ ] możliwość edycji danych
+- [x] widok analizy dokumentu (tabela danych + pozycje faktury, kolorowe badge kategorii)
+- [x] możliwość edycji danych (modal z formularzem, PATCH do API)
 - [x] tabela przetworzonych faktur
 - [x] UI: usunięcie „Status przetwarzania” z danych księgowych + schowanie podglądu OCR (rozwijany w panelu technicznym)
 
 ## MVP – eksport
-- [ ] eksport CSV
-- [ ] eksport XLSX
+- [x] eksport CSV (endpoint + przycisk w UI, z uwzględnieniem aktywnych filtrów)
+- [x] eksport XLSX (endpoint + przycisk w UI, z nagłówkami i formatowaniem)
 
 ## Rozszerzenia
 - [ ] logowanie użytkowników

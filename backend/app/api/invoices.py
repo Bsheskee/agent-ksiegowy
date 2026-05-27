@@ -1,8 +1,12 @@
+import csv
+import io
 import re
 import uuid
 from pathlib import Path
+from typing import Any
 
-from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Body, File, HTTPException, Query, UploadFile, status
+from fastapi.responses import StreamingResponse
 
 from app import config
 from app import db
@@ -22,6 +26,28 @@ _ALLOWED_MIME = frozenset(
     }
 )
 
+# Ordered columns for CSV / XLSX export
+_EXPORT_FIELDS: list[tuple[str, str]] = [
+    ("id", "ID dokumentu"),
+    ("original_filename", "Nazwa pliku"),
+    ("status", "Status"),
+    ("created_at", "Dodano"),
+    ("invoice_number", "Numer faktury"),
+    ("issue_date", "Data wystawienia"),
+    ("sale_date", "Data sprzedaży"),
+    ("payment_due_date", "Termin zapłaty"),
+    ("issue_place", "Miejsce wystawienia"),
+    ("seller_nip", "NIP sprzedawcy"),
+    ("buyer_nip", "NIP nabywcy"),
+    ("net_amount", "Suma netto"),
+    ("vat_amount", "Suma VAT"),
+    ("gross_amount", "Suma brutto"),
+    ("currency", "Waluta"),
+    ("category", "Kategoria"),
+    ("extraction_method", "Metoda ekstrakcji"),
+    ("bielik_status", "Status Bielik"),
+]
+
 
 def _safe_stem(name: str, max_len: int = 120) -> str:
     base = Path(name).name
@@ -36,6 +62,23 @@ def _extension(filename: str | None) -> str:
         return ""
     return Path(filename).suffix.lower()
 
+
+def _flatten_invoice(item: dict) -> dict[str, Any]:
+    """Merge top-level invoice fields with analysis fields for export."""
+    analysis = item.get("analysis") or {}
+    top_keys = {"id", "original_filename", "status", "created_at"}
+    return {
+        "id": item.get("id", ""),
+        "original_filename": item.get("original_filename", ""),
+        "status": item.get("status", ""),
+        "created_at": item.get("created_at", ""),
+        **{k: analysis.get(k, "") for k, _ in _EXPORT_FIELDS if k not in top_keys},
+    }
+
+
+# ---------------------------------------------------------------------------
+# Upload / process endpoints
+# ---------------------------------------------------------------------------
 
 @router.post(
     "/upload",
@@ -124,6 +167,124 @@ async def upload_and_process_invoice(file: UploadFile = File(...)) -> dict:
     return processed
 
 
+# ---------------------------------------------------------------------------
+# Static / export routes — MUST appear before /{invoice_id} to avoid shadowing
+# ---------------------------------------------------------------------------
+
+@router.get("", summary="Lista dokumentów z opcjonalnym filtrowaniem")
+async def list_invoices(
+    limit: int = Query(50, ge=1, le=200),
+    category: str | None = Query(None, description="Filtruj po kategorii"),
+    status: str | None = Query(None, description="Filtruj po statusie: uploaded|processing|processed|failed"),
+    date_from: str | None = Query(None, description="Data wystawienia od (YYYY-MM-DD)"),
+    date_to: str | None = Query(None, description="Data wystawienia do (YYYY-MM-DD)"),
+) -> list[dict]:
+    return db.list_invoices(
+        limit=limit,
+        category=category,
+        status=status,
+        date_from=date_from,
+        date_to=date_to,
+    )
+
+
+@router.get("/status/ocr", summary="Status OCR")
+async def ocr_status() -> dict:
+    return {
+        "tesseract_available": tesseract_available(),
+        "supported_file_types": sorted(config.ALLOWED_EXTENSIONS),
+    }
+
+
+@router.get("/export/csv", summary="Eksportuj faktury do CSV")
+async def export_csv(
+    category: str | None = Query(None),
+    status: str | None = Query(None),
+    date_from: str | None = Query(None),
+    date_to: str | None = Query(None),
+    limit: int = Query(200, ge=1, le=1000),
+) -> StreamingResponse:
+    invoices = db.list_invoices(
+        limit=limit,
+        category=category,
+        status=status,
+        date_from=date_from,
+        date_to=date_to,
+    )
+    output = io.StringIO()
+    writer = csv.writer(output, delimiter=";")
+    writer.writerow([label for _, label in _EXPORT_FIELDS])
+    for inv in invoices:
+        flat = _flatten_invoice(inv)
+        writer.writerow([flat.get(field, "") for field, _ in _EXPORT_FIELDS])
+
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv; charset=utf-8-sig",
+        headers={"Content-Disposition": "attachment; filename=faktury.csv"},
+    )
+
+
+@router.get("/export/xlsx", summary="Eksportuj faktury do XLSX")
+async def export_xlsx(
+    category: str | None = Query(None),
+    status: str | None = Query(None),
+    date_from: str | None = Query(None),
+    date_to: str | None = Query(None),
+    limit: int = Query(200, ge=1, le=1000),
+) -> StreamingResponse:
+    try:
+        import openpyxl
+        from openpyxl.styles import Alignment, Font, PatternFill
+    except ImportError as exc:
+        raise HTTPException(
+            status_code=500,
+            detail="Biblioteka openpyxl nie jest zainstalowana.",
+        ) from exc
+
+    invoices = db.list_invoices(
+        limit=limit,
+        category=category,
+        status=status,
+        date_from=date_from,
+        date_to=date_to,
+    )
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Faktury"
+
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="2563EB", end_color="2563EB", fill_type="solid")
+
+    headers = [label for _, label in _EXPORT_FIELDS]
+    ws.append(headers)
+    for col_idx, cell in enumerate(ws[1], start=1):
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center")
+        ws.column_dimensions[cell.column_letter].width = max(16, len(headers[col_idx - 1]) + 4)
+
+    for inv in invoices:
+        flat = _flatten_invoice(inv)
+        ws.append([flat.get(field, "") for field, _ in _EXPORT_FIELDS])
+
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    return StreamingResponse(
+        iter([output.read()]),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=faktury.xlsx"},
+    )
+
+
+# ---------------------------------------------------------------------------
+# Per-invoice operations — parametric routes last to avoid shadowing
+# ---------------------------------------------------------------------------
+
 @router.post(
     "/{invoice_id}/process",
     summary="Przetwórz dokument (OCR + analiza pól)",
@@ -178,15 +339,13 @@ async def get_invoice(invoice_id: str) -> dict:
     return invoice
 
 
-@router.get("", summary="Lista dokumentów")
-async def list_invoices(limit: int = 50) -> list[dict]:
-    safe_limit = min(max(limit, 1), 200)
-    return db.list_invoices(limit=safe_limit)
-
-
-@router.get("/status/ocr", summary="Status OCR")
-async def ocr_status() -> dict:
-    return {
-        "tesseract_available": tesseract_available(),
-        "supported_file_types": sorted(config.ALLOWED_EXTENSIONS),
-    }
+@router.patch(
+    "/{invoice_id}/analysis",
+    summary="Zaktualizuj (nadpisz) wybrane pola analizy faktury",
+)
+async def update_invoice_analysis(invoice_id: str, patch: dict = Body(...)) -> dict:
+    found = db.update_invoice_analysis(invoice_id, patch)
+    if not found:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Nie znaleziono dokumentu.")
+    updated = db.get_invoice(invoice_id)
+    return updated or {"id": invoice_id}

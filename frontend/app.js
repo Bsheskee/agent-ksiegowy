@@ -6,6 +6,7 @@ let currentInvoiceId   = null;   // invoice shown in the analysis panel
 let currentAnalysisData = null;  // raw analysis object of current invoice
 let chartCategory      = null;   // Chart.js instance – category
 let chartMonth         = null;   // Chart.js instance – month
+let uploadPanelHasResult = false; // true when analysis panel is populated
 
 const PAGE_TITLES = {
   dashboard: "Pulpit",
@@ -193,6 +194,10 @@ function navigateTo(pageId) {
     fetchAndRenderStats();
     fetchDashboardRecent();
   }
+  if (pageId === "upload" && !uploadPanelHasResult) {
+    // Fresh navigation to upload: ensure form is clean
+    resetUploadForm();
+  }
   if (pageId === "documents") fetchRecent();
   if (pageId === "analytics") fetchAndRenderStats();
 }
@@ -223,8 +228,31 @@ document.querySelectorAll(".nav-link[data-page]").forEach(link => {
 // ── Upload: Loading state ──────────────────────────────────────────────
 function setUploading(loading) {
   uploadBtn.disabled = loading;
-  if (uploadBtnText) uploadBtnText.textContent = loading ? "Przetwarzanie…" : "Przetwórz dokument";
+  if (uploadBtnText) {
+    if (loading) {
+      uploadBtnText.textContent = "Przetwarzanie…";
+    } else {
+      // Restore the correct label for the current state
+      uploadBtnText.textContent = uploadPanelHasResult ? "✚ Dodaj kolejną fakturę" : "Przetwórz dokument";
+    }
+  }
   if (uploadSpinner) uploadSpinner.style.display = loading ? "inline-block" : "none";
+}
+
+// ── Reset upload form (clear file, hide analysis, ready for new upload) ─
+function resetUploadForm() {
+  if (invoiceFileInput)  invoiceFileInput.value = "";
+  if (dropzoneText)      dropzoneText.textContent = "Przeciągnij fakturę tutaj";
+  if (dropzone)          dropzone.classList.remove("drag-over");
+  if (analysisSection)   analysisSection.style.display = "none";
+  if (linesSection)      linesSection.style.display = "none";
+  currentInvoiceId    = null;
+  currentAnalysisData = null;
+  uploadPanelHasResult = false;
+  setStatus("");
+  if (uploadBtn)     uploadBtn.classList.remove("btn-secondary");
+  if (uploadBtn)     uploadBtn.classList.add("btn-primary");
+  if (uploadBtnText) uploadBtnText.textContent = "Przetwórz dokument";
 }
 
 // ── Dropzone drag & drop ───────────────────────────────────────────────
@@ -381,6 +409,14 @@ function renderResult(data) {
 
   // Show analysis section
   if (analysisSection) analysisSection.style.display = "";
+
+  // Flip the upload button to "add another" mode
+  uploadPanelHasResult = true;
+  if (uploadBtnText) uploadBtnText.textContent = "✚ Dodaj kolejną fakturę";
+  if (uploadBtn) {
+    uploadBtn.classList.remove("btn-primary");
+    uploadBtn.classList.add("btn-secondary");
+  }
 }
 
 // ── Document card HTML ─────────────────────────────────────────────────
@@ -725,6 +761,12 @@ async function reprocessInvoice() {
 
 // ── Upload handler ────────────────────────────────────────────────────
 uploadBtn?.addEventListener("click", async () => {
+  // If the panel already shows a result, this click means "start fresh"
+  if (uploadPanelHasResult) {
+    resetUploadForm();
+    return;
+  }
+
   const file = invoiceFileInput?.files?.[0];
   if (!file) { showToast("Najpierw wybierz plik.", "warning"); return; }
 

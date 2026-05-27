@@ -1,3 +1,4 @@
+import asyncio
 import csv
 import io
 import re
@@ -5,12 +6,13 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Body, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 
 from app import config
 from app import db
-from app.services.analyzer import analyze_invoice_text
+from app.services.analyzer import CATEGORIES, analyze_invoice_text
 from app.services.bielik import analyze_with_bielik, merge_invoice_analysis
 from app.services.ocr import extract_text, tesseract_available
 
@@ -37,17 +39,50 @@ _EXPORT_FIELDS: list[tuple[str, str]] = [
     ("sale_date", "Data sprzedaży"),
     ("payment_due_date", "Termin zapłaty"),
     ("issue_place", "Miejsce wystawienia"),
+    ("seller_name", "Nazwa sprzedawcy"),
     ("seller_nip", "NIP sprzedawcy"),
+    ("buyer_name", "Nazwa nabywcy"),
     ("buyer_nip", "NIP nabywcy"),
     ("net_amount", "Suma netto"),
     ("vat_amount", "Suma VAT"),
     ("gross_amount", "Suma brutto"),
     ("currency", "Waluta"),
     ("category", "Kategoria"),
+    ("confirmed", "Zatwierdzone"),
     ("extraction_method", "Metoda ekstrakcji"),
     ("bielik_status", "Status Bielik"),
 ]
 
+
+# ---------------------------------------------------------------------------
+# Pydantic validation model for PATCH /analysis
+# ---------------------------------------------------------------------------
+
+class AnalysisPatch(BaseModel):
+    """Typed, validated merge-patch for invoice analysis fields."""
+
+    model_config = {"extra": "ignore"}
+
+    invoice_number: str | None = None
+    issue_date: str | None = None
+    sale_date: str | None = None
+    payment_due_date: str | None = None
+    issue_place: str | None = None
+    seller_nip: str | None = None
+    buyer_nip: str | None = None
+    seller_name: str | None = None
+    buyer_name: str | None = None
+    net_amount: str | None = None
+    vat_amount: str | None = None
+    gross_amount: str | None = None
+    currency: str | None = None
+    category: str | None = None
+    confirmed: bool | None = None
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 def _safe_stem(name: str, max_len: int = 120) -> str:
     base = Path(name).name
@@ -136,16 +171,35 @@ async def upload_invoice(file: UploadFile = File(...)) -> dict:
             detail=f"Nie udało się zapisać pliku: {e}",
         ) from e
 
+    # SHA-256 deduplication check
+    sha256 = await asyncio.to_thread(db.compute_sha256, dest)
+    existing_id = db.find_duplicate_sha256(sha256)
+    if existing_id:
+        dest.unlink(missing_ok=True)
+        existing = db.get_invoice(existing_id) or {}
+        return {
+            "id": existing_id,
+            "duplicate": True,
+            "status": existing.get("status"),
+            "original_filename": existing.get("original_filename"),
+            "stored_path": existing.get("stored_path", ""),
+            "stored_filename": Path(existing.get("stored_path", "")).name,
+            "content_type": existing.get("content_type"),
+            "size_bytes": existing.get("size_bytes", size),
+        }
+
     db.create_invoice(
         invoice_id=doc_id,
         original_filename=file.filename,
         stored_path=dest,
         content_type=file.content_type,
         size_bytes=size,
+        file_sha256=sha256,
     )
 
     return {
         "id": doc_id,
+        "duplicate": False,
         "status": "uploaded",
         "original_filename": file.filename,
         "stored_path": str(dest),
@@ -162,30 +216,51 @@ async def upload_invoice(file: UploadFile = File(...)) -> dict:
 )
 async def upload_and_process_invoice(file: UploadFile = File(...)) -> dict:
     uploaded = await upload_invoice(file)
+    # If a duplicate was found return the already-processed invoice directly
+    if uploaded.get("duplicate"):
+        existing = db.get_invoice(uploaded["id"])
+        if existing:
+            existing["duplicate"] = True
+            return existing
     processed = await process_invoice(uploaded["id"])
     processed["upload_status_code"] = 201
     return processed
 
 
 # ---------------------------------------------------------------------------
-# Static / export routes — MUST appear before /{invoice_id} to avoid shadowing
+# Static / export / utility routes — MUST appear before /{invoice_id}
 # ---------------------------------------------------------------------------
 
 @router.get("", summary="Lista dokumentów z opcjonalnym filtrowaniem")
 async def list_invoices(
     limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0, description="Numer pierwszego rekordu do pobrania (stronicowanie)"),
     category: str | None = Query(None, description="Filtruj po kategorii"),
     status: str | None = Query(None, description="Filtruj po statusie: uploaded|processing|processed|failed"),
     date_from: str | None = Query(None, description="Data wystawienia od (YYYY-MM-DD)"),
     date_to: str | None = Query(None, description="Data wystawienia do (YYYY-MM-DD)"),
+    search: str | None = Query(None, description="Szukaj w nazwie pliku i numerze faktury"),
 ) -> list[dict]:
     return db.list_invoices(
         limit=limit,
+        offset=offset,
         category=category,
         status=status,
         date_from=date_from,
         date_to=date_to,
+        search=search,
     )
+
+
+@router.get("/categories", summary="Lista kategorii wydatków")
+async def list_categories() -> list[str]:
+    """Return the ordered list of expense categories defined in analyzer.py."""
+    return CATEGORIES
+
+
+@router.get("/stats", summary="Statystyki wydatków (suma brutto per kategoria i miesiąc)")
+async def get_stats() -> dict:
+    return db.get_stats()
 
 
 @router.get("/status/ocr", summary="Status OCR")
@@ -193,6 +268,7 @@ async def ocr_status() -> dict:
     return {
         "tesseract_available": tesseract_available(),
         "supported_file_types": sorted(config.ALLOWED_EXTENSIONS),
+        "ocr_lang": config.OCR_LANG,
     }
 
 
@@ -202,6 +278,7 @@ async def export_csv(
     status: str | None = Query(None),
     date_from: str | None = Query(None),
     date_to: str | None = Query(None),
+    search: str | None = Query(None),
     limit: int = Query(200, ge=1, le=1000),
 ) -> StreamingResponse:
     invoices = db.list_invoices(
@@ -210,6 +287,7 @@ async def export_csv(
         status=status,
         date_from=date_from,
         date_to=date_to,
+        search=search,
     )
     output = io.StringIO()
     writer = csv.writer(output, delimiter=";")
@@ -232,6 +310,7 @@ async def export_xlsx(
     status: str | None = Query(None),
     date_from: str | None = Query(None),
     date_to: str | None = Query(None),
+    search: str | None = Query(None),
     limit: int = Query(200, ge=1, le=1000),
 ) -> StreamingResponse:
     try:
@@ -249,6 +328,7 @@ async def export_xlsx(
         status=status,
         date_from=date_from,
         date_to=date_to,
+        search=search,
     )
 
     wb = openpyxl.Workbook()
@@ -303,16 +383,22 @@ async def process_invoice(invoice_id: str) -> dict:
         )
 
     db.mark_processing(invoice_id)
-    try:
+
+    def _run_pipeline() -> tuple[str, dict]:
+        """Synchronous OCR + analysis pipeline — runs in a thread pool."""
         ocr_result = extract_text(file_path)
         text = ocr_result["text"]
-        heuristic_analysis = analyze_invoice_text(text)
-        bielik_analysis = analyze_with_bielik(text, heuristic_analysis)
-        analysis = merge_invoice_analysis(heuristic_analysis, bielik_analysis)
+        heuristic = analyze_invoice_text(text)
+        bielik = analyze_with_bielik(text, heuristic)
+        analysis = merge_invoice_analysis(heuristic, bielik)
         analysis["ocr_engine"] = ocr_result["engine"]
         analysis["ocr_warning"] = ocr_result["warning"]
         analysis["ocr_text_length"] = len(text)
         db.mark_processed(invoice_id, ocr_text=text, analysis=analysis)
+        return text, analysis
+
+    try:
+        text, analysis = await asyncio.to_thread(_run_pipeline)
     except Exception as exc:  # noqa: BLE001
         db.mark_failed(invoice_id, str(exc))
         raise HTTPException(
@@ -331,6 +417,13 @@ async def process_invoice(invoice_id: str) -> dict:
     return response
 
 
+@router.get("/{invoice_id}/events", summary="Historia operacji dla dokumentu")
+async def get_invoice_events(invoice_id: str) -> list[dict]:
+    if db.get_invoice(invoice_id) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Nie znaleziono dokumentu.")
+    return db.get_invoice_events(invoice_id)
+
+
 @router.get("/{invoice_id}", summary="Pobierz szczegóły dokumentu")
 async def get_invoice(invoice_id: str) -> dict:
     invoice = db.get_invoice(invoice_id)
@@ -343,8 +436,14 @@ async def get_invoice(invoice_id: str) -> dict:
     "/{invoice_id}/analysis",
     summary="Zaktualizuj (nadpisz) wybrane pola analizy faktury",
 )
-async def update_invoice_analysis(invoice_id: str, patch: dict = Body(...)) -> dict:
-    found = db.update_invoice_analysis(invoice_id, patch)
+async def update_invoice_analysis(invoice_id: str, patch: AnalysisPatch) -> dict:
+    patch_dict = patch.model_dump(exclude_unset=True)
+    if not patch_dict:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Brak pól do aktualizacji.",
+        )
+    found = db.update_invoice_analysis(invoice_id, patch_dict)
     if not found:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Nie znaleziono dokumentu.")
     updated = db.get_invoice(invoice_id)

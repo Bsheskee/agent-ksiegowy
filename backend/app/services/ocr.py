@@ -5,6 +5,8 @@ import pytesseract
 from PIL import Image
 from pypdf import PdfReader
 
+from app import config
+
 
 def tesseract_available() -> bool:
     return which("tesseract") is not None
@@ -41,7 +43,7 @@ def extract_text(file_path: Path) -> dict:
             }
         try:
             with Image.open(file_path) as image:
-                text = pytesseract.image_to_string(image, lang="pol+eng").strip()
+                text = pytesseract.image_to_string(image, lang=config.OCR_LANG).strip()
             return {
                 "text": text,
                 "engine": "tesseract",

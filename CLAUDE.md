@@ -112,6 +112,7 @@ All prefixed `AGENT_KS_`. Set in shell or a `.env` file before starting uvicorn.
 | `AGENT_KS_UPLOAD_DIR` | `data/uploads` | Where uploaded files are stored |
 | `AGENT_KS_DATABASE_PATH` | `data/app.db` | SQLite file path |
 | `AGENT_KS_MAX_UPLOAD_BYTES` | `26214400` (25 MB) | Max upload size |
+| `AGENT_KS_OCR_LANG` | `pol+eng` | Tesseract language pack(s), e.g. `pol` or `pol+eng` |
 | `AGENT_KS_BIELIK_URL` | *(unset)* | Bielik API base URL – if unset, Bielik is skipped and heuristic result is used directly |
 | `AGENT_KS_BIELIK_TOKEN` | *(unset)* | Bearer token for Bielik API |
 | `AGENT_KS_BIELIK_MODEL` | `bielik` | Model name sent in request payload |
@@ -125,15 +126,18 @@ All routes are under `/api/v1/invoices`.
 
 | Method | Path | Description |
 |---|---|---|
-| `POST` | `/upload-and-process` | Upload + OCR + analyse in one shot |
-| `POST` | `/upload` | Upload only (returns `id`) |
-| `POST` | `/{id}/process` | Run OCR + analysis on an already-uploaded file |
-| `GET` | `` | List invoices; supports `?category=`, `?status=`, `?date_from=`, `?date_to=`, `?limit=` |
+| `POST` | `/upload-and-process` | Upload + OCR + analyse in one shot; returns existing record if SHA-256 duplicate |
+| `POST` | `/upload` | Upload only (returns `id`); SHA-256 dedup — returns existing record with `duplicate:true` if already uploaded |
+| `POST` | `/{id}/process` | Run OCR + analysis on an already-uploaded file (re-process) |
+| `GET` | `` | List invoices; supports `?category=`, `?status=`, `?date_from=`, `?date_to=`, `?limit=`, `?offset=`, `?search=` |
 | `GET` | `/{id}` | Single invoice with full analysis JSON |
-| `PATCH` | `/{id}/analysis` | Merge-patch selected analysis fields (JSON body) |
+| `GET` | `/{id}/events` | Audit log (historia operacji) for an invoice |
+| `PATCH` | `/{id}/analysis` | Merge-patch selected analysis fields via `AnalysisPatch` Pydantic model |
+| `GET` | `/categories` | Ordered list of expense categories from `analyzer.py` |
+| `GET` | `/stats` | Spending stats: totals by category and by month |
 | `GET` | `/export/csv` | Download CSV (same filter params as list) |
 | `GET` | `/export/xlsx` | Download XLSX with styled header row |
-| `GET` | `/status/ocr` | Whether Tesseract is available |
+| `GET` | `/status/ocr` | Whether Tesseract is available + configured `ocr_lang` |
 
 Interactive docs: `http://localhost:8000/docs`
 
@@ -191,10 +195,23 @@ CREATE TABLE invoices (
     ocr_text TEXT,
     analysis_json TEXT,            -- serialised analysis dict
     error_message TEXT,
+    file_sha256 TEXT,              -- SHA-256 hex of uploaded file (dedup)
     created_at TEXT NOT NULL,      -- ISO-8601 UTC
     updated_at TEXT NOT NULL
 );
+
+CREATE TABLE events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    invoice_id TEXT NOT NULL,
+    event_type TEXT NOT NULL,      -- uploaded | processing | processed | failed | analysis_updated
+    message TEXT,
+    created_at TEXT NOT NULL
+);
 ```
+
+`file_sha256` is added via `ALTER TABLE` migration in `init_db()` so existing databases upgrade automatically.
+
+The `analysis_json` dict now includes `seller_name`, `buyer_name`, and `confirmed` (bool, default `false`) fields in addition to the previous fields.
 
 ### Bielik integration
 
@@ -212,40 +229,41 @@ export AGENT_KS_BIELIK_MODEL=bielik
 
 The list below cross-references the PRD (`docs/PRD.md`) and highlights gaps between current state and specification, plus general quality/UX improvements.
 
-### 🔴 PRD gaps (specified but not yet implemented)
+### 🔴 PRD gaps
 
-| PRD section | Requirement | Current state | Suggested fix |
-|---|---|---|---|
-| §6.4 | "Zatwierdzenie wpisu" — explicit user approval step before saving | Editing is possible but there is no distinct *approve* action; data is saved automatically on process | Add an "Zatwierdź" button that sets a `confirmed: true` flag in `analysis_json`; show unconfirmed entries differently in the list |
-| §6.5 | "Wyszukiwanie" (full-text search) | Only categorical/date filters exist | Add `?search=` query param using SQLite `LIKE` on `original_filename` and `json_extract(analysis_json, '$.invoice_number')` |
-| §7 | Statystyki wydatków | Not implemented | Add a `/api/v1/stats` endpoint (sum per category, per month); render a simple bar chart in the frontend using a lightweight library such as Chart.js |
-| §7 | Historia operacji | Not implemented | Add an `events` table to log each status transition with timestamp and actor |
-| §7 | Integracja z Google Sheets | Not implemented | Add a `POST /export/gsheets` endpoint using the Sheets API v4; credentials stored as env vars |
-| §8 | Model Bielik as primary analyser | Bielik is optional/fallback | Document a recommended local Bielik setup (Ollama) in `INSTALLATION.md`; add a UI indicator showing whether Bielik was applied (`bielik_status` field already exists in DB) |
+| PRD section | Requirement | Status |
+|---|---|---|
+| §6.4 | "Zatwierdzenie wpisu" | ✅ **Done** — "Zatwierdź" button sets `confirmed: true` in `analysis_json`; unconfirmed cards show different badge |
+| §6.5 | "Wyszukiwanie" (full-text search) | ✅ **Done** — `?search=` param via SQLite `LIKE` on `original_filename` and `invoice_number`; search box in UI |
+| §7 | Statystyki wydatków | ✅ **Done** — `/api/v1/invoices/stats` endpoint; Chart.js bar charts by category and month in UI |
+| §7 | Historia operacji | ✅ **Done** — `events` table logs every status transition; `GET /{id}/events` endpoint |
+| §7 | Integracja z Google Sheets | ❌ Not implemented (requires external credentials) |
+| §8 | Bielik UI indicator | ✅ **Done** — "🤖 Bielik" vs "📐 Heurystyka" badge shown in analysis panel |
 
 ### 🟡 Architecture & backend
 
-- **No input validation model** — the `PATCH /{id}/analysis` endpoint accepts any JSON dict. Define a Pydantic `AnalysisPatch` model with optional typed fields to prevent storing garbage.
-- **Synchronous OCR in request handler** — `process_invoice` runs OCR/LLM synchronously in the API request. For large PDFs or slow Bielik this blocks the event loop. Move to a background task (`BackgroundTasks`) or a task queue (Celery/ARQ).
-- **No pagination cursor** — `list_invoices` uses `LIMIT` only; adding `offset` (or a keyset cursor on `created_at`) is needed once the table grows.
-- **Single SQLite file** — fine for local/single-user use, but `sqlite3.connect()` is called per request. Consider using a connection pool (`aiosqlite` + async handlers) for concurrent uploads.
-- **No file deduplication** — uploading the same file twice creates two independent records. A SHA-256 check on upload would catch this.
-- **Tesseract language** — hardcoded to `pol+eng`. Could be made configurable via `AGENT_KS_BIELIK_OCR_LANG`.
+- ✅ **`AnalysisPatch` Pydantic model** — PATCH endpoint now validates and types all fields; `extra="ignore"` prevents garbage keys.
+- ✅ **Non-blocking OCR** — `process_invoice` runs the synchronous OCR/Bielik pipeline in `asyncio.to_thread`, unblocking the event loop.
+- ✅ **Offset pagination** — `list_invoices` now accepts `?offset=` in addition to `?limit=`.
+- ✅ **SHA-256 deduplication** — uploading the same file returns the existing record (`duplicate: true`) without storing a second copy.
+- ✅ **Configurable OCR language** — `AGENT_KS_OCR_LANG` env var (default `pol+eng`).
+- **Single SQLite file** — fine for local/single-user use. Connection pool (`aiosqlite`) is a future improvement.
 
 ### 🟡 Frontend & UX
 
-- **No loading skeleton / progress indicator** — while processing, the upload button just disables. Show a spinner or progress bar; for large PDFs the wait can be 5–10 s.
-- **No toast notifications** — errors and successes are displayed in a small `<p>` element that is easy to miss. Replace with a dismissible toast component.
-- **No confirm before edit-save** — clicking "Zapisz zmiany" immediately PATCHes the server. A "are you sure?" prompt (or undo) prevents accidental overwrites.
-- **History cards don't show OCR warning** — if OCR returned an empty string or a warning, the card should surface this so the user knows the analysis may be unreliable.
-- **No dark mode** — the CSS uses hardcoded light colours. Adding a `prefers-color-scheme: dark` media query would improve accessibility.
-- **Mobile layout** — the filter bar and lines table overflow on narrow screens. Consider collapsing filters into a `<details>` on mobile.
-- **Category filter dropdown** is hard-coded in HTML** — it must be kept in sync with `_CATEGORY_RULES` in `analyzer.py` manually. Fetch categories from a `/api/v1/categories` endpoint instead.
+- ✅ **Loading spinner** — CSS spinner shown inside the upload button while processing.
+- ✅ **Toast notifications** — dismissible slide-in toasts (success / error / warning / info) at bottom-right.
+- ✅ **Confirm before edit-save** — `confirm()` dialog before PATCHing the server.
+- ✅ **OCR warning on history cards** — orange "⚠ OCR" badge if `analysis.ocr_warning` is set.
+- ✅ **Dark mode** — full `@media (prefers-color-scheme: dark)` stylesheet.
+- ✅ **Mobile layout** — filter bar wrapped in `<details>` that collapses on narrow screens; single-column edit grid.
+- ✅ **Category filter from API** — both filter dropdown and edit-modal category select populated from `/api/v1/categories` at load time.
 
 ### 🟢 Quick wins
 
-- **Show Bielik status badge** — `analysis.bielik_status` is stored but never displayed. A small "🤖 Bielik" vs "📐 Heuristic" badge on each analysis card would communicate data quality.
-- **Re-process button** — allow re-running OCR + analysis on an existing record (useful after fixing Tesseract or connecting Bielik).
-- **Bulk export respects current filters** — already implemented; just needs to be documented for users.
-- **Add `seller_name` / `buyer_name` extraction** — the heuristic currently extracts NIPs but not the company names, which are present in most invoices.
-- **PDF thumbnail preview** — render the first page of the uploaded PDF as an `<img>` in the analysis panel (using `pdf.js` on the client or `pypdfium2` on the server).
+- ✅ **Bielik status badge** — "🤖 Bielik" / "📐 Heurystyka" badge in analysis panel.
+- ✅ **Re-process button** — "🔄 Przetworz ponownie" button runs `POST /{id}/process` on the displayed invoice.
+- ✅ **Bulk export respects filters** — CSV/XLSX export passes the same `?search=`, `?category=`, etc. params as the current list view.
+- ✅ **`seller_name` / `buyer_name` extraction** — `extract_company_names()` in `analyzer.py`; shown in analysis table and included in exports.
+- ✅ **Stats section** — Chart.js bar charts for spending by category and by month.
+- **PDF thumbnail preview** — future improvement (requires `pdf.js` or `pypdfium2`).

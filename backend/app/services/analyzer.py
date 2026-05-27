@@ -185,6 +185,103 @@ def extract_nips(text: str) -> dict[str, str | None]:
     return {"seller_nip": seller, "buyer_nip": buyer}
 
 
+_SKIP_COMPANY_LINE_RE = re.compile(
+    r"^(?:ul\.|al\.|pl\.|os\.|NIP|REGON|KRS|tel\.?|fax|www\.|e-?mail|@|\d{2}-\d{3})",
+    re.IGNORECASE,
+)
+_SECTION_LABEL_RE = re.compile(
+    r"^(?:Sprzedawca|Wystawca|Dostawca|Nabywca|Odbiorca|Kupujący|Płatnik|Faktura|Data|Miejsce)\b",
+    re.IGNORECASE,
+)
+_SELLER_LABEL_RE = re.compile(
+    r"^(?:Sprzedawca|Wystawca|Dostawca)\s*[:\-]?\s*(.*)$", re.IGNORECASE
+)
+_BUYER_LABEL_RE = re.compile(
+    r"^(?:Nabywca|Odbiorca|Kupujący|Płatnik)\s*[:\-]?\s*(.*)$", re.IGNORECASE
+)
+
+
+def _first_company_line(lines: list[str], start: int) -> str | None:
+    """Return the first meaningful non-address, non-label line after `start`."""
+    for j in range(start, min(start + 6, len(lines))):
+        candidate = _normalize_spaces(lines[j])
+        if not candidate:
+            continue
+        if _SKIP_COMPANY_LINE_RE.match(candidate):
+            continue
+        if _SECTION_LABEL_RE.match(candidate):
+            # Hit another section — stop searching
+            return None
+        if len(candidate) < 3:
+            continue
+        return candidate
+    return None
+
+
+def extract_company_names(text: str) -> dict[str, str | None]:
+    """Best-effort extraction of seller_name and buyer_name from invoice text."""
+    normalized = _normalize_text(text)
+    lines = normalized.splitlines()
+
+    seller_name: str | None = None
+    buyer_name: str | None = None
+
+    for i, raw_line in enumerate(lines):
+        line = _normalize_spaces(raw_line)
+
+        # Seller label — possibly inline ("Sprzedawca: FIRMA XYZ") or standalone
+        m = _SELLER_LABEL_RE.match(line)
+        if m and seller_name is None:
+            inline = _normalize_spaces(m.group(1))
+            if (inline and len(inline) > 2
+                    and not _SKIP_COMPANY_LINE_RE.match(inline)
+                    and not _SECTION_LABEL_RE.match(inline)):
+                seller_name = inline
+            else:
+                seller_name = _first_company_line(lines, i + 1)
+
+        # Buyer label
+        m = _BUYER_LABEL_RE.match(line)
+        if m and buyer_name is None:
+            inline = _normalize_spaces(m.group(1))
+            if (inline and len(inline) > 2
+                    and not _SKIP_COMPANY_LINE_RE.match(inline)
+                    and not _SECTION_LABEL_RE.match(inline)):
+                buyer_name = inline
+            else:
+                buyer_name = _first_company_line(lines, i + 1)
+
+    # Fallback: look for lines preceding NIP occurrences
+    if not seller_name or not buyer_name:
+        nip_indices = [
+            i for i, l in enumerate(lines)
+            if re.search(r"NIP\s*[:\s]*[0-9]", l, re.IGNORECASE)
+        ]
+        for pos, nip_idx in enumerate(nip_indices[:2]):
+            if pos == 0 and seller_name:
+                continue
+            if pos == 1 and buyer_name:
+                continue
+            for offset in range(1, 5):
+                prev = nip_idx - offset
+                if prev < 0:
+                    break
+                candidate = _normalize_spaces(lines[prev])
+                if not candidate or _SKIP_COMPANY_LINE_RE.match(candidate):
+                    continue
+                # Stop at any section label — it's not a company name
+                if _SECTION_LABEL_RE.match(candidate):
+                    break
+                if len(candidate) > 2:
+                    if pos == 0:
+                        seller_name = candidate
+                    else:
+                        buyer_name = candidate
+                    break
+
+    return {"seller_name": seller_name, "buyer_name": buyer_name}
+
+
 def extract_totals(text: str) -> dict[str, str | None]:
     normalized = _normalize_text(text)
     flattened = _flatten_text(normalized)
@@ -367,7 +464,7 @@ def extract_line_items(text: str) -> list[dict[str, Any]]:
     return deduped
 
 
-_CATEGORY_RULES: list[tuple[str, list[str]]] = [
+_CATEGORY_RULES: list[tuple[str, list[str]]] = [  # noqa: RUF012
     # IT / oprogramowanie
     (
         "oprogramowanie",
@@ -483,6 +580,10 @@ _CATEGORY_RULES: list[tuple[str, list[str]]] = [
 ]
 
 
+# Exported list of category names (order matches _CATEGORY_RULES)
+CATEGORIES: list[str] = [cat for cat, _ in _CATEGORY_RULES]
+
+
 def _category_from_text(text: str) -> str:
     """Classify expense category using keyword rules applied to invoice text."""
     lower = _normalize_text(text).lower()
@@ -498,6 +599,7 @@ def analyze_invoice_text(text: str) -> dict[str, Any]:
     dates = extract_dates(normalized)
     totals = extract_totals(normalized)
     nips = extract_nips(normalized)
+    names = extract_company_names(normalized)
     line_items = extract_line_items(normalized)
 
     return {
@@ -508,6 +610,8 @@ def analyze_invoice_text(text: str) -> dict[str, Any]:
         "issue_place": extract_place_of_issue(normalized),
         "seller_nip": nips.get("seller_nip"),
         "buyer_nip": nips.get("buyer_nip"),
+        "seller_name": names.get("seller_name"),
+        "buyer_name": names.get("buyer_name"),
         "net_amount": totals.get("total_net"),
         "vat_amount": totals.get("total_vat"),
         "gross_amount": totals.get("total_gross"),
@@ -515,4 +619,5 @@ def analyze_invoice_text(text: str) -> dict[str, Any]:
         "line_items": line_items,
         "category": _category_from_text(normalized),
         "extraction_method": "heuristic_pl_v3",
+        "confirmed": False,
     }

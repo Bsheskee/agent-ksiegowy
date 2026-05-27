@@ -7,6 +7,10 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
+
+    <!-- ── Toast notifications ──────────────────────────────────────────── -->
+    <div id="toastContainer" class="toastContainer" aria-live="polite"></div>
+
     <main class="container">
       <header class="hero">
         <h1>Agent Księgowy</h1>
@@ -18,7 +22,10 @@
         <h2>1. Dodaj dokument</h2>
         <label for="invoiceFile">Plik faktury (PDF, JPG, PNG)</label>
         <input id="invoiceFile" type="file" accept=".pdf,.jpg,.jpeg,.png" />
-        <button id="uploadBtn">Przetwórz dokument</button>
+        <button id="uploadBtn">
+          <span id="uploadBtnText">Przetwórz dokument</span>
+          <span id="uploadSpinner" class="spinner" style="display:none"></span>
+        </button>
         <p id="statusText" class="status"></p>
       </section>
 
@@ -27,7 +34,11 @@
         <div class="listHeader">
           <h2>2. Dane księgowe</h2>
           <div class="listHeaderActions">
+            <span id="bielikStatusBadge" class="badge neutral bielikBadge" style="display:none"></span>
+            <span id="confirmedBadge" class="badge neutral" style="display:none"></span>
             <span id="resultStatusBadge" class="badge neutral">Brak wyniku</span>
+            <button id="confirmBtn" class="secondary small" style="display:none" title="Oznacz jako zweryfikowaną">✓ Zatwierdź</button>
+            <button id="reprocessBtn" class="secondary small" style="display:none" title="Uruchom OCR i analizę ponownie">🔄 Przetworz ponownie</button>
             <button id="editBtn" class="secondary small">✏️ Edytuj</button>
           </div>
         </div>
@@ -68,49 +79,71 @@
           </div>
         </div>
 
-        <!-- Filter bar -->
-        <div class="filterBar">
-          <div class="filterGroup">
-            <label for="filterCategory">Kategoria</label>
-            <select id="filterCategory">
-              <option value="">Wszystkie</option>
-              <option value="oprogramowanie">Oprogramowanie</option>
-              <option value="sprzęt IT">Sprzęt IT</option>
-              <option value="paliwo">Paliwo</option>
-              <option value="transport">Transport</option>
-              <option value="delegacje">Delegacje</option>
-              <option value="media">Media</option>
-              <option value="materiały biurowe">Materiały biurowe</option>
-              <option value="usługi doradcze">Usługi doradcze</option>
-              <option value="marketing">Marketing</option>
-              <option value="surowce">Surowce</option>
-              <option value="wyposażenie">Wyposażenie</option>
-              <option value="ubezpieczenia">Ubezpieczenia</option>
-              <option value="inne">Inne</option>
-            </select>
+        <!-- Filter bar (collapsible on mobile) -->
+        <details id="filterDetails" class="filterDetails" open>
+          <summary class="filterSummary">Filtry i wyszukiwanie</summary>
+          <div class="filterBar">
+            <div class="filterGroup searchGroup">
+              <label for="filterSearch">Szukaj</label>
+              <input id="filterSearch" type="text" class="filterInput searchInput" placeholder="Numer faktury, nazwa pliku…" />
+            </div>
+            <div class="filterGroup">
+              <label for="filterCategory">Kategoria</label>
+              <select id="filterCategory">
+                <option value="">Wszystkie</option>
+              </select>
+            </div>
+            <div class="filterGroup">
+              <label for="filterStatus">Status</label>
+              <select id="filterStatus">
+                <option value="">Wszystkie</option>
+                <option value="processed">Przetworzone</option>
+                <option value="uploaded">Przesłane</option>
+                <option value="failed">Błąd</option>
+              </select>
+            </div>
+            <div class="filterGroup">
+              <label for="filterDateFrom">Data od</label>
+              <input id="filterDateFrom" type="date" class="filterInput" />
+            </div>
+            <div class="filterGroup">
+              <label for="filterDateTo">Data do</label>
+              <input id="filterDateTo" type="date" class="filterInput" />
+            </div>
+            <button id="applyFilterBtn" class="secondary small filterApply">Filtruj</button>
+            <button id="clearFilterBtn" class="secondary small filterApply">✕ Wyczyść</button>
           </div>
-          <div class="filterGroup">
-            <label for="filterStatus">Status</label>
-            <select id="filterStatus">
-              <option value="">Wszystkie</option>
-              <option value="processed">Przetworzone</option>
-              <option value="uploaded">Przesłane</option>
-              <option value="failed">Błąd</option>
-            </select>
-          </div>
-          <div class="filterGroup">
-            <label for="filterDateFrom">Data od</label>
-            <input id="filterDateFrom" type="date" class="filterInput" />
-          </div>
-          <div class="filterGroup">
-            <label for="filterDateTo">Data do</label>
-            <input id="filterDateTo" type="date" class="filterInput" />
-          </div>
-          <button id="applyFilterBtn" class="secondary small filterApply">Filtruj</button>
-          <button id="clearFilterBtn" class="secondary small filterApply">✕ Wyczyść</button>
-        </div>
+        </details>
 
         <div id="invoicesList" class="historyGrid"></div>
+      </section>
+
+      <!-- ── 4. Statystyki wydatków ─────────────────────────────────── -->
+      <section class="card" id="statsSection">
+        <div class="listHeader">
+          <h2>Statystyki wydatków</h2>
+          <button id="refreshStatsBtn" class="secondary small">↺ Odśwież</button>
+        </div>
+        <div class="statsGrid">
+          <div class="statCard">
+            <div class="statValue" id="statTotalCount">-</div>
+            <div class="statLabel">Przetworzonych faktur</div>
+          </div>
+          <div class="statCard">
+            <div class="statValue" id="statTotalGross">-</div>
+            <div class="statLabel">Łączna wartość brutto</div>
+          </div>
+        </div>
+        <div class="chartsGrid">
+          <div class="chartContainer">
+            <h3>Wydatki wg kategorii</h3>
+            <canvas id="chartByCategory"></canvas>
+          </div>
+          <div class="chartContainer">
+            <h3>Wydatki wg miesiąca</h3>
+            <canvas id="chartByMonth"></canvas>
+          </div>
+        </div>
       </section>
 
       <!-- ── Admin panel ────────────────────────────────────────────── -->
@@ -164,27 +197,17 @@
             <label>Data sprzedaży<input name="sale_date" type="date" /></label>
             <label>Termin zapłaty<input name="payment_due_date" type="date" /></label>
             <label>Miejsce wystawienia<input name="issue_place" type="text" /></label>
+            <label>Nazwa sprzedawcy<input name="seller_name" type="text" /></label>
             <label>NIP sprzedawcy<input name="seller_nip" type="text" /></label>
+            <label>Nazwa nabywcy<input name="buyer_name" type="text" /></label>
             <label>NIP nabywcy<input name="buyer_nip" type="text" /></label>
             <label>Suma netto<input name="net_amount" type="text" /></label>
             <label>Suma VAT<input name="vat_amount" type="text" /></label>
             <label>Suma brutto<input name="gross_amount" type="text" /></label>
             <label>Waluta<input name="currency" type="text" /></label>
             <label>Kategoria
-              <select name="category">
-                <option value="oprogramowanie">Oprogramowanie</option>
-                <option value="sprzęt IT">Sprzęt IT</option>
-                <option value="paliwo">Paliwo</option>
-                <option value="transport">Transport</option>
-                <option value="delegacje">Delegacje</option>
-                <option value="media">Media</option>
-                <option value="materiały biurowe">Materiały biurowe</option>
-                <option value="usługi doradcze">Usługi doradcze</option>
-                <option value="marketing">Marketing</option>
-                <option value="surowce">Surowce</option>
-                <option value="wyposażenie">Wyposażenie</option>
-                <option value="ubezpieczenia">Ubezpieczenia</option>
-                <option value="inne">Inne</option>
+              <select name="category" id="editCategorySelect">
+                <!-- populated dynamically from /api/v1/categories -->
               </select>
             </label>
           </div>
@@ -197,6 +220,8 @@
       </div>
     </div>
 
+    <!-- Chart.js from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     <script src="./app.js"></script>
   </body>
 </html>

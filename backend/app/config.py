@@ -16,7 +16,14 @@ def _env_int(key: str, default: int) -> int:
     return int(raw)
 
 
+def _env_str(key: str, default: str) -> str:
+    return os.environ.get(f"{_PREFIX}{key}", default)
+
+
 UPLOAD_DIR: Path = _env_path("UPLOAD_DIR", "data/uploads")
 DATABASE_PATH: Path = _env_path("DATABASE_PATH", "data/app.db")
 MAX_UPLOAD_BYTES: int = _env_int("MAX_UPLOAD_BYTES", 25 * 1024 * 1024)
 ALLOWED_EXTENSIONS: frozenset[str] = frozenset({".pdf", ".jpg", ".jpeg", ".png"})
+
+# Language pack(s) used by Tesseract OCR — e.g. "pol+eng" or "pol"
+OCR_LANG: str = _env_str("OCR_LANG", "pol+eng")

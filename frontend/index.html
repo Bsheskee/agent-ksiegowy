@@ -13,53 +13,41 @@
         <p class="subtitle">Dodaj fakturę i otrzymaj czytelny podgląd danych księgowych.</p>
       </header>
 
+      <!-- ── 1. Upload ──────────────────────────────────────────────── -->
       <section class="card uploadCard">
         <h2>1. Dodaj dokument</h2>
         <label for="invoiceFile">Plik faktury (PDF, JPG, PNG)</label>
         <input id="invoiceFile" type="file" accept=".pdf,.jpg,.jpeg,.png" />
-
         <button id="uploadBtn">Przetwórz dokument</button>
         <p id="statusText" class="status"></p>
       </section>
 
-      <section class="card">
+      <!-- ── 2. Dane księgowe ───────────────────────────────────────── -->
+      <section class="card" id="analysisSection" style="display:none">
         <div class="listHeader">
-          <h2>2. Dane księgowe (ważne)</h2>
-          <span id="resultStatusBadge" class="badge neutral">Brak wyniku</span>
+          <h2>2. Dane księgowe</h2>
+          <div class="listHeaderActions">
+            <span id="resultStatusBadge" class="badge neutral">Brak wyniku</span>
+            <button id="editBtn" class="secondary small">✏️ Edytuj</button>
+          </div>
         </div>
         <table class="factTable">
           <tbody id="factTableBody">
             <tr><th>Numer faktury</th><td>-</td></tr>
-            <tr><th>Data wystawienia</th><td>-</td></tr>
-            <tr><th>Data sprzedaży</th><td>-</td></tr>
-            <tr><th>Termin zapłaty</th><td>-</td></tr>
-            <tr><th>Miejsce wystawienia</th><td>-</td></tr>
-            <tr><th>NIP sprzedawcy</th><td>-</td></tr>
-            <tr><th>NIP nabywcy</th><td>-</td></tr>
-            <tr><th>Suma netto</th><td>-</td></tr>
-            <tr><th>Suma VAT</th><td>-</td></tr>
-            <tr><th>Suma brutto</th><td>-</td></tr>
-            <tr><th>Waluta</th><td>-</td></tr>
-            <tr><th>Kategoria kosztu</th><td>-</td></tr>
           </tbody>
         </table>
       </section>
 
-      <section class="card">
+      <!-- ── 2b. Pozycje faktury ────────────────────────────────────── -->
+      <section class="card" id="linesSection" style="display:none">
         <h2>2b. Pozycje faktury</h2>
         <div class="tableWrap">
           <table class="linesTable">
             <thead>
               <tr>
-                <th>Lp</th>
-                <th>Nazwa</th>
-                <th>Jm</th>
-                <th>Ilość</th>
-                <th>Cena netto</th>
-                <th>Stawka VAT</th>
-                <th>Wart. netto</th>
-                <th>Wart. VAT</th>
-                <th>Wart. brutto</th>
+                <th>Lp</th><th>Nazwa</th><th>Jm</th><th>Ilość</th>
+                <th>Cena netto</th><th>Stawka VAT</th>
+                <th>Wart. netto</th><th>Wart. VAT</th><th>Wart. brutto</th>
               </tr>
             </thead>
             <tbody id="linesTableBody">
@@ -69,14 +57,63 @@
         </div>
       </section>
 
+      <!-- ── 3. Historia + filtry ───────────────────────────────────── -->
       <section class="card">
         <div class="listHeader">
           <h2>Ostatnie dokumenty</h2>
-          <button id="refreshBtn" class="secondary">Odśwież</button>
+          <div class="listHeaderActions">
+            <button id="exportCsvBtn" class="secondary small">⬇ CSV</button>
+            <button id="exportXlsxBtn" class="secondary small">⬇ XLSX</button>
+            <button id="refreshBtn" class="secondary small">↺ Odśwież</button>
+          </div>
         </div>
+
+        <!-- Filter bar -->
+        <div class="filterBar">
+          <div class="filterGroup">
+            <label for="filterCategory">Kategoria</label>
+            <select id="filterCategory">
+              <option value="">Wszystkie</option>
+              <option value="oprogramowanie">Oprogramowanie</option>
+              <option value="sprzęt IT">Sprzęt IT</option>
+              <option value="paliwo">Paliwo</option>
+              <option value="transport">Transport</option>
+              <option value="delegacje">Delegacje</option>
+              <option value="media">Media</option>
+              <option value="materiały biurowe">Materiały biurowe</option>
+              <option value="usługi doradcze">Usługi doradcze</option>
+              <option value="marketing">Marketing</option>
+              <option value="surowce">Surowce</option>
+              <option value="wyposażenie">Wyposażenie</option>
+              <option value="ubezpieczenia">Ubezpieczenia</option>
+              <option value="inne">Inne</option>
+            </select>
+          </div>
+          <div class="filterGroup">
+            <label for="filterStatus">Status</label>
+            <select id="filterStatus">
+              <option value="">Wszystkie</option>
+              <option value="processed">Przetworzone</option>
+              <option value="uploaded">Przesłane</option>
+              <option value="failed">Błąd</option>
+            </select>
+          </div>
+          <div class="filterGroup">
+            <label for="filterDateFrom">Data od</label>
+            <input id="filterDateFrom" type="date" class="filterInput" />
+          </div>
+          <div class="filterGroup">
+            <label for="filterDateTo">Data do</label>
+            <input id="filterDateTo" type="date" class="filterInput" />
+          </div>
+          <button id="applyFilterBtn" class="secondary small filterApply">Filtruj</button>
+          <button id="clearFilterBtn" class="secondary small filterApply">✕ Wyczyść</button>
+        </div>
+
         <div id="invoicesList" class="historyGrid"></div>
       </section>
 
+      <!-- ── Admin panel ────────────────────────────────────────────── -->
       <section class="card adminCard">
         <details>
           <summary>Panel administratora (dane techniczne)</summary>
@@ -100,7 +137,7 @@
             <details class="subDetails">
               <summary id="ocrPreviewSummary">Tekst OCR (podgląd)</summary>
               <div class="subDetailsBody">
-                <p id="ocrPreviewWarning" class="hint"></p>
+                <p id="ocrPreviewWarning" class="hint" style="display:none"></p>
                 <pre id="ocrPreviewText" class="ocrPreview">Brak tekstu OCR.</pre>
               </div>
             </details>
@@ -111,6 +148,55 @@
         </details>
       </section>
     </main>
+
+    <!-- ── Edit modal ─────────────────────────────────────────────────── -->
+    <div id="editModal" class="modal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
+      <div class="modalBackdrop" id="editModalBackdrop"></div>
+      <div class="modalContent">
+        <div class="modalHeader">
+          <h3 id="editModalTitle">Edytuj dane faktury</h3>
+          <button id="editModalClose" class="modalClose" aria-label="Zamknij">✕</button>
+        </div>
+        <form id="editForm" class="editForm">
+          <div class="editGrid">
+            <label>Numer faktury<input name="invoice_number" type="text" /></label>
+            <label>Data wystawienia<input name="issue_date" type="date" /></label>
+            <label>Data sprzedaży<input name="sale_date" type="date" /></label>
+            <label>Termin zapłaty<input name="payment_due_date" type="date" /></label>
+            <label>Miejsce wystawienia<input name="issue_place" type="text" /></label>
+            <label>NIP sprzedawcy<input name="seller_nip" type="text" /></label>
+            <label>NIP nabywcy<input name="buyer_nip" type="text" /></label>
+            <label>Suma netto<input name="net_amount" type="text" /></label>
+            <label>Suma VAT<input name="vat_amount" type="text" /></label>
+            <label>Suma brutto<input name="gross_amount" type="text" /></label>
+            <label>Waluta<input name="currency" type="text" /></label>
+            <label>Kategoria
+              <select name="category">
+                <option value="oprogramowanie">Oprogramowanie</option>
+                <option value="sprzęt IT">Sprzęt IT</option>
+                <option value="paliwo">Paliwo</option>
+                <option value="transport">Transport</option>
+                <option value="delegacje">Delegacje</option>
+                <option value="media">Media</option>
+                <option value="materiały biurowe">Materiały biurowe</option>
+                <option value="usługi doradcze">Usługi doradcze</option>
+                <option value="marketing">Marketing</option>
+                <option value="surowce">Surowce</option>
+                <option value="wyposażenie">Wyposażenie</option>
+                <option value="ubezpieczenia">Ubezpieczenia</option>
+                <option value="inne">Inne</option>
+              </select>
+            </label>
+          </div>
+          <div class="modalFooter">
+            <button type="submit" id="editSaveBtn">Zapisz zmiany</button>
+            <button type="button" id="editCancelBtn" class="secondary">Anuluj</button>
+          </div>
+          <p id="editStatus" class="status"></p>
+        </form>
+      </div>
+    </div>
+
     <script src="./app.js"></script>
   </body>
 </html>

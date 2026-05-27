@@ -15,19 +15,15 @@ body {
   padding: 28px 16px 42px;
 }
 
-.hero h1 {
-  margin-bottom: 6px;
-}
-
-h2 {
-  margin: 0;
-}
+.hero h1 { margin-bottom: 6px; }
+h2 { margin: 0; }
 
 .subtitle {
   margin-top: 0;
   color: #475569;
 }
 
+/* ── Cards ───────────────────────────────────────────────────────────── */
 .card {
   background: rgba(255, 255, 255, 0.88);
   border: 1px solid #e2e8f0;
@@ -37,6 +33,7 @@ h2 {
   box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
 }
 
+/* ── Form elements ────────────────────────────────────────────────────── */
 label {
   display: block;
   margin-top: 12px;
@@ -44,13 +41,15 @@ label {
 }
 
 input,
-button {
+button,
+select {
   width: 100%;
   margin-top: 8px;
   padding: 12px;
   border-radius: 10px;
   border: 1px solid #cbd5e1;
   font-size: 15px;
+  background: #fff;
 }
 
 button {
@@ -59,19 +58,24 @@ button {
   border: 0;
   font-weight: 700;
   cursor: pointer;
+  transition: opacity 0.15s;
 }
 
 button.secondary {
   width: auto;
-  padding: 8px 12px;
+  padding: 8px 14px;
   background: #e2e8f0;
   color: #0f172a;
+  font-weight: 600;
 }
 
-button:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
+button.small {
+  padding: 6px 12px;
+  font-size: 13px;
+  border-radius: 8px;
 }
+
+button:disabled { opacity: 0.7; cursor: not-allowed; }
 
 .status {
   min-height: 24px;
@@ -79,40 +83,46 @@ button:disabled {
   font-weight: 700;
 }
 
+/* ── Header row with actions ──────────────────────────────────────────── */
 .listHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
+.listHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ── Badges ───────────────────────────────────────────────────────────── */
 .badge {
   display: inline-block;
-  padding: 6px 10px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.badge.success { background: #dcfce7; border-color: #86efac; color: #166534; }
+.badge.error   { background: #fee2e2; border-color: #fecaca; color: #991b1b; }
+.badge.neutral { background: #e2e8f0; border-color: #cbd5e1; color: #334155; }
+
+.catBadge {
+  display: inline-block;
+  padding: 3px 9px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 700;
   border: 1px solid transparent;
 }
 
-.badge.success {
-  background: #dcfce7;
-  border-color: #86efac;
-  color: #166534;
-}
-
-.badge.error {
-  background: #fee2e2;
-  border-color: #fecaca;
-  color: #991b1b;
-}
-
-.badge.neutral {
-  background: #e2e8f0;
-  border-color: #cbd5e1;
-  color: #334155;
-}
-
+/* ── Tables ───────────────────────────────────────────────────────────── */
 .factTable,
 .metaTable {
   width: 100%;
@@ -120,10 +130,8 @@ button:disabled {
   margin-top: 14px;
 }
 
-.factTable th,
-.factTable td,
-.metaTable th,
-.metaTable td {
+.factTable th, .factTable td,
+.metaTable th,  .metaTable td {
   text-align: left;
   border-bottom: 1px solid #e2e8f0;
   padding: 9px 4px;
@@ -136,6 +144,9 @@ button:disabled {
   color: #475569;
   font-weight: 600;
 }
+
+.factTable td,
+.metaTable td { font-weight: 600; }
 
 .tableWrap {
   overflow-x: auto;
@@ -156,15 +167,110 @@ button:disabled {
   white-space: nowrap;
 }
 
-.linesTable th {
+.linesTable th { background: #f8fafc; font-weight: 700; }
+
+td.empty { color: #94a3b8; font-style: italic; }
+
+/* ── Filter bar ───────────────────────────────────────────────────────── */
+.filterBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  margin-top: 14px;
+  padding: 14px 16px;
   background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.filterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 140px;
+}
+
+.filterGroup label {
+  margin-top: 0;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.filterGroup input,
+.filterGroup select {
+  margin-top: 0;
+  padding: 7px 10px;
+  font-size: 13px;
+  border-radius: 8px;
+  min-width: 130px;
+}
+
+.filterInput { width: 140px; }
+
+.filterApply {
+  align-self: flex-end;
+  margin-top: 0;
+}
+
+/* ── History grid ─────────────────────────────────────────────────────── */
+.historyGrid {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.historyCard {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #fff;
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+
+.historyCard.clickable {
+  cursor: pointer;
+}
+
+.historyCard.clickable:hover {
+  border-color: #93c5fd;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.12);
+}
+
+.historyCardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.historyName { font-weight: 700; }
+
+.historyMeta {
+  margin-top: 5px;
+  color: #334155;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.historyHint {
+  margin-top: 5px;
+  font-size: 12px;
+  color: #2563eb;
+  font-weight: 600;
+}
+
+/* ── Admin panel ─────────────────────────────────────────────────────── */
+.adminCard details summary {
+  cursor: pointer;
   font-weight: 700;
 }
 
-.factTable td,
-.metaTable td {
-  font-weight: 600;
-}
+.adminContent { margin-top: 14px; }
 
 .ocrPreview {
   margin: 12px 0 0;
@@ -189,9 +295,7 @@ button:disabled {
   color: #0f172a;
 }
 
-.subDetailsBody {
-  margin-top: 10px;
-}
+.subDetailsBody { margin-top: 10px; }
 
 .hint {
   margin: 0 0 10px;
@@ -213,34 +317,89 @@ pre {
   min-height: 110px;
 }
 
-.historyGrid {
-  display: grid;
-  gap: 12px;
-  margin-top: 12px;
+code {
+  font-family: "Fira Code", "Consolas", monospace;
+  background: #f1f5f9;
+  color: #475569;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 12px;
 }
 
-.historyCard {
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 12px;
+/* ── Edit modal ───────────────────────────────────────────────────────── */
+.modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modalBackdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.modalContent {
+  position: relative;
   background: #fff;
+  border-radius: 18px;
+  padding: 26px 28px;
+  width: min(640px, 95vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22);
 }
 
-.historyName {
-  font-weight: 700;
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
 }
 
-.historyMeta {
-  margin-top: 6px;
-  color: #334155;
+.modalHeader h3 { margin: 0; font-size: 18px; }
+
+.modalClose {
+  width: auto;
+  background: #f1f5f9;
+  color: #475569;
+  border: 0;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.editGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 20px;
+}
+
+.editGrid label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: #475569;
+  margin-top: 0;
+}
+
+.editGrid label input,
+.editGrid label select {
+  margin-top: 0;
+  padding: 9px 10px;
   font-size: 14px;
 }
 
-.adminCard details summary {
-  cursor: pointer;
-  font-weight: 700;
+.modalFooter {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
 }
 
-.adminContent {
-  margin-top: 14px;
-}
+.modalFooter button { width: auto; flex: 1; }

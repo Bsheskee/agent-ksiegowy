@@ -367,22 +367,129 @@ def extract_line_items(text: str) -> list[dict[str, Any]]:
     return deduped
 
 
+_CATEGORY_RULES: list[tuple[str, list[str]]] = [
+    # IT / oprogramowanie
+    (
+        "oprogramowanie",
+        [
+            "oprogramowanie", "software", "licencja", "subskrypcja", "subscription",
+            "microsoft", "office 365", "google workspace", "adobe", "jira", "github",
+            "saas", "api", "hosting", "serwer", "cloud", "aws", "azure", "domain",
+            "domena", "ssl", "antywirus", "antivirus",
+        ],
+    ),
+    # Sprzęt komputerowy / elektronika
+    (
+        "sprzęt IT",
+        [
+            "laptop", "notebook", "komputer", "monitor", "drukarka", "skaner",
+            "router", "switch", "serwer rack", "dysk", "ssd", "ram", "procesor",
+            "intel core", "ryzen", "hp ", "dell ", "lenovo", "asus", "acer",
+            "tablet", "ipad", "smartfon", "telefon", "kabel usb", "myszka", "klawiatura",
+            "ups ", "zasilacz",
+        ],
+    ),
+    # Paliwo
+    (
+        "paliwo",
+        [
+            "paliwo", "benzyna", "diesel", "pb95", "pb98", "on ", "lpg", "gaz do auta",
+            "stacja paliw", "orlen", "bp ", "shell", "lotos", "circle k",
+        ],
+    ),
+    # Transport / logistyka
+    (
+        "transport",
+        [
+            "transport", "kurjer", "kurier", "fedex", "dhl", "ups ", "inpost",
+            "spedycja", "logistyka", "przesyłka", "paczka", "dostawa",
+            "taxi", "uber", "bolt", "przewóz", "bilet", "pkp", "flixbus",
+        ],
+    ),
+    # Delegacje / noclegi
+    (
+        "delegacje",
+        [
+            "hotel", "nocleg", "motel", "hostel", "booking", "airbnb",
+            "gastronomia", "restauracja", "catering", "lunch", "obiad",
+            "konferencja", "szkolenie", "kurs ", "delegacja",
+        ],
+    ),
+    # Media / utilities
+    (
+        "media",
+        [
+            "energia elektryczna", "prąd", "gaz ziemny", "woda ", "kanalizacja",
+            "internet", "telefon komórkowy", "abonament", "tauron", "pge ",
+            "enea", "pgnig", "orange", "t-mobile", "plus ", "play ",
+        ],
+    ),
+    # Materiały biurowe
+    (
+        "materiały biurowe",
+        [
+            "materiały biurowe", "papier", "toner", "tusz", "segregator",
+            "długopis", "marker", "zeszyt", "koszulka a4", "stapeler",
+            "taśma", "koperta", "artykuły biurowe",
+        ],
+    ),
+    # Usługi prawne / doradcze
+    (
+        "usługi doradcze",
+        [
+            "usługi prawne", "obsługa prawna", "adwokat", "radca prawny",
+            "doradztwo", "konsulting", "audyt", "księgowość", "biuro rachunkowe",
+            "usługi rachunkowe", "notariusz",
+        ],
+    ),
+    # Marketing / reklama
+    (
+        "marketing",
+        [
+            "reklama", "marketing", "kampania", "google ads", "facebook ads",
+            "pozycjonowanie", "seo", "ulotki", "plakaty", "banery", "druk reklamowy",
+            "agencja reklamowa", "pr ",
+        ],
+    ),
+    # Surowce / materiały produkcyjne
+    (
+        "surowce",
+        [
+            "złom", "surowce", "stal", "aluminium", "tworzywo", "plastik",
+            "drewno", "cement", "beton", "materiały budowlane",
+        ],
+    ),
+    # Wyposażenie biura / mebli
+    (
+        "wyposażenie",
+        [
+            "meble", "biurko", "krzesło", "szafa", "regał", "wyposażenie",
+            "sprzęt agd", "lodówka", "mikrofalówka", "ekspres",
+        ],
+    ),
+    # Ochrona / ubezpieczenia
+    (
+        "ubezpieczenia",
+        [
+            "ubezpieczenie", "polisa", "oc ", "ac ", "nnw", "ochrona mienia",
+            "allianz", "pzu ", "warta", "ergo hestia",
+        ],
+    ),
+    # Perfumy / kosmetyki / inne niebiznesowe
+    (
+        "inne",
+        ["perfum", "kosmetyk", "odzież"],
+    ),
+]
+
+
 def _category_from_text(text: str) -> str:
+    """Classify expense category using keyword rules applied to invoice text."""
     lower = _normalize_text(text).lower()
-    if "paliwo" in lower:
-        return "paliwo"
-    if "transport" in lower:
-        return "transport"
-    if "hotel" in lower or "gastronomia" in lower:
-        return "delegacje"
-    if "oprogramowanie" in lower or "subskrypcja" in lower or "microsoft" in lower:
-        return "oprogramowanie"
-    if "złom" in lower:
-        return "surowce"
-    if "perfum" in lower:
-        return "inne"
-    if "hp " in lower or "intel core" in lower:
-        return "sprzęt"
+    for category, keywords in _CATEGORY_RULES:
+        for keyword in keywords:
+            if keyword in lower:
+                return category
     return "inne"
 
 
